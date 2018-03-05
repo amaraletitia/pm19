@@ -45,7 +45,6 @@ class HeuristicMiner(object):
 
         for ai in dependency_relation:
             output = list(dependency_relation[ai].keys())
-            print("{}_{}:{}".format(ai, _type, output))
             if ai not in casual_matrix:
                 casual_matrix[ai] = collections.defaultdict(list)
             casual_matrix[ai][_type] = output
@@ -95,7 +94,6 @@ class HeuristicMiner(object):
     def count_frequency(self, eventlog, casual_matrix):
         event_trace = eventlog.get_event_trace(1)
         trace_count = eventlog._get_trace_count(event_trace)
-        print(trace_count)
         for act in casual_matrix:
             #__input = self.sort_by_length(casual_matrix[act]['input'])
             if 'input_count' not in casual_matrix[act]:

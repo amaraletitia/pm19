@@ -158,9 +158,6 @@ class TransitionMatrix(object):
 
 					if caseid not in transition_matrix[ai_string][aj_string]['case']:
 						transition_matrix[ai_string][aj_string]['case'].append(caseid)
-
-
-		print(transition_matrix)
 		print("Finish")
 
 		x.append(transition_matrix)
