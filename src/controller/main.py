@@ -1,5 +1,4 @@
 
-
 import sys
 import os
 import signal
@@ -20,13 +19,15 @@ from simplification import Simplification
 
 sys.path.append(os.path.abspath("../mining"))
 from transition_matrix import TransitionMatrix
-from transition_matrix import AnnotatedTransitionMatrix
+from dependency_graph import DependencyGraph
+from heuristic_miner import HeuristicMiner
 
 sys.path.append(os.path.abspath(("../model")))
-from fsm import FSM
+from fsm import FSM_Miner
 
 sys.path.append(os.path.abspath(("../visualization")))
 from svg_widget import Visualization
+from chart_visualization import ChartVisualizer
 
 from PyQt5 import QtSvg,QtCore,QtGui,Qt,QtWidgets
 import multiprocessing
@@ -36,7 +37,7 @@ import multiprocessing
 if __name__ == '__main__':
 	#eventlog = Eventlog.from_txt('/Volumes/GoogleDrive/내 드라이브/framework/src/data/example/Sample_data.txt')
 
-	eventlog = Eventlog.from_txt('/Volumes/GoogleDrive/내 드라이브/framework/src/data/example/raw_data.txt')
+	eventlog = Eventlog.from_txt("/Users/GYUNAM/Documents/example/Sample_data.txt")
 	eventlog = eventlog.assign_caseid('ROOT_LOT_ID', 'WAFER_ID')
 	eventlog = eventlog.assign_activity('STEP_SEQ')
 	eventlog = eventlog.assign_resource('EQP_ID', 'CHAMBER_ID')
@@ -56,8 +57,8 @@ if __name__ == '__main__':
 			steps.append("STEP_0{}".format(i))
 		#steps.append("STEP_{}".format())
 	#print(steps)
-	eventlog = filtering.filter_activity(eventlog, steps)
-	eventlog = filtering.filter_eqp(eventlog, 20)
+	#eventlog = filtering.filter_activity(eventlog, steps)
+	#eventlog = filtering.filter_eqp(eventlog, 20)
 	#chamber filtering 후에 RESOURCE 재생성
 	eventlog = eventlog.assign_resource('EQP_ID', 'CHAMBER_ID')
 	eventlog = eventlog.join_columns('RESOURCE', 'ACTIVITY', 'RESOURCE')
@@ -72,8 +73,8 @@ if __name__ == '__main__':
 	eventlog = remover.remove_incomplete_wafer(eventlog, 'STEP_001', 'STEP_075')
 	#eventlog = remover.remove_incomplete_lot(eventlog,20)
 	print("Length of steps: {}".format(len(steps)))
-	eventlog = remover.remove_incomplete_flow(eventlog, len(steps))
-	eventlog = remover.remove_diff_flow(eventlog)
+	#eventlog = remover.remove_incomplete_flow(eventlog, len(steps))
+	#eventlog = remover.remove_diff_flow(eventlog)
 
 
 
@@ -82,6 +83,7 @@ if __name__ == '__main__':
 	sorted_wafer_data = wafer_data.sort_values(by=['CASE_ID', 'ACTIVITY'])
 	sorted_wafer_data.to_csv('../result/wafer_data.csv', sep = ',')
 	sorted_wafer_data.describe()
+	print(sorted_wafer_data)
 
 	classifier = Classifier()
 	BOB_criterion, WOW_criterion = classifier.relative_ratio_criterion(wafer_data, 70, 30)
@@ -99,15 +101,17 @@ if __name__ == '__main__':
 
 
 	#transition_matrix = TransitionMatrix(eventlog).get_transition_matrix()
-	analysis_result = pd.read_csv('../result/analysis_result.csv')
+	analysis_result = pd.read_csv('../result/sample_analysis_result.csv')
 
-	annotated_transition_matrix = AnnotatedTransitionMatrix().get_annotated_transition_matrix(wafer_data, multiprocessing.cpu_count())
-	#annotated_transition_matrix = AnnotatedTransitionMatrix().produce_annotated_transition_matrix(wafer_data)
-	simplified_annotated_transition_matrix = Simplification().by_inout(annotated_transition_matrix, analysis_result)
-	fsm = FSM(simplified_annotated_transition_matrix, analysis_result, BG, WG)
-	fsm_graph = fsm.get_fsm()
-	fsm.get_graph_info()
-	dot = fsm.get_dot()
+	#Transition Matrix
+	TM = TransitionMatrix()
+	transition_matrix = TM.get_transition_matrix(sorted_wafer_data, 4, type='sequence', horizon=1, target = 'RESOURCE')
+	transition_matrix = TM.annotate_transition_matrix(sorted_wafer_data, 4, transition_matrix, 'CASE_ID')
+	#simplified_annotated_transition_matrix = Simplification().by_inout(transition_matrix, analysis_result)
+	fsm = FSM_Miner()
+	fsm_graph = fsm._create_graph(transition_matrix, analysis_result = analysis_result, BG = BG, WG = WG)
+	fsm.get_graph_info(fsm_graph)
+	dot = fsm.get_dot(fsm_graph)
 
 	app = QtWidgets.QApplication(sys.argv)
 

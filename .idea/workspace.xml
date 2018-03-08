@@ -1,18 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="34be4866-9ef6-41b2-9847-8dd756507d06" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/src/controller/TM_main.html" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/src/controller/TM_main.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/src/mining/heuristic_miner.py" afterPath="$PROJECT_DIR$/src/mining/heuristic_miner.py" />
-      <change beforePath="$PROJECT_DIR$/src/mining/old_transition_matrix.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/src/mining/old_transition_matrix_0227.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/src/mining/old_transition_matrix_0228.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/src/mining/transition_matrix.py" afterPath="$PROJECT_DIR$/src/mining/transition_matrix.py" />
-      <change beforePath="$PROJECT_DIR$/src/mining/transition_matrix_backup.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/src/result/bar_nested.html" afterPath="$PROJECT_DIR$/src/result/bar_nested.html" />
-      <change beforePath="$PROJECT_DIR$/src/result/state_svg.svg" afterPath="$PROJECT_DIR$/src/result/state_svg.svg" />
-    </list>
+    <list default="true" id="34be4866-9ef6-41b2-9847-8dd756507d06" name="Default" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />

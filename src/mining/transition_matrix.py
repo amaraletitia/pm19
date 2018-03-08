@@ -26,11 +26,12 @@ class TransitionMatrix(object):
 	def __init__(self):
 		super(TransitionMatrix, self).__init__()
 
-	def get_transition_matrix(self, eventlog, workers, type='sequence', horizon=1):
+	def get_transition_matrix(self, eventlog, workers, type='sequence', horizon=1, target = 'ACTIVITY'):
 		self.type = type
 		self.horizon = horizon
+		self.target = target
 
-		output = eventlog.parallelize(self._produce_transition_matrix, workers, self.type, self.horizon)
+		output = eventlog.parallelize(self._produce_transition_matrix, workers, self.type, self.horizon, target)
 
 		transition_matrix = Util_Multiprocessing.join_dict(output)
 		return transition_matrix
@@ -38,13 +39,12 @@ class TransitionMatrix(object):
 
 
 	@timefn
-	def _produce_transition_matrix(self, eventlog, x, type = 'sequence', horizon = 1):
+	def _produce_transition_matrix(self, eventlog, x, type = 'sequence', horizon = 1, target='ACTIVITY'):
 		print("produce transition matrix")
 		transition_matrix = dict()
 		transition_matrix['START'] = dict()
 
-		event_trace = eventlog.get_event_trace(1)
-
+		event_trace = eventlog.get_event_trace(1, target)
 		for trace in event_trace.values():
 			if type == 'sequence':
 				ai = Sequence(horizon)
@@ -82,9 +82,9 @@ class TransitionMatrix(object):
 		print("Finish")
 		x.append(transition_matrix)
 
-	def annotate_transition_matrix(self, eventlog, workers, transition_matrix):
+	def annotate_transition_matrix(self, eventlog, workers, transition_matrix, value = 'duration'):
 
-		output = eventlog.parallelize(self._annotate_transition_matrix, workers, transition_matrix)
+		output = eventlog.parallelize(self._annotate_transition_matrix, workers, transition_matrix,value)
 
 		transition_matrix = Util_Multiprocessing.join_dict(output)
 		return transition_matrix
@@ -111,14 +111,20 @@ class TransitionMatrix(object):
 					ai = Abs_set(self.horizon)
 				ai.append('START')
 				aj = deepcopy(ai)
-				aj.append(eventlog.get_activity_by_index(index))
+				if self.target == 'ACTIVITY':
+					aj.append(eventlog.get_activity_by_index(index))
+				elif self.target == 'RESOURCE':
+					aj.append(eventlog.get_resource_by_index(index))
 				count = 1
 
 			if instance.CASE_ID == caseid:
 				if index == eventlog.count_event() - 2:
 					break
 				ai = deepcopy(aj)
-				aj.append(eventlog.get_activity_by_index(index+1))
+				if self.target == 'ACTIVITY':
+					aj.append(eventlog.get_activity_by_index(index+1))
+				elif self.target == 'RESOURCE':
+					aj.append(eventlog.get_resource_by_index(index+1))
 				ai_string = ai.to_string()
 				aj_string = aj.to_string()
 				if value == 'CASE_ID':
@@ -131,7 +137,10 @@ class TransitionMatrix(object):
 					next_caseid = eventlog.get_caseid_by_index(index+2)
 					if caseid == next_caseid:
 						ak = deepcopy(aj)
-						ak.append(eventlog.get_activity_by_index(index+2))
+						if self.target == 'ACTIVITY':
+							ak.append(eventlog.get_activity_by_index(index+2))
+						elif self.target == 'RESOURCE':
+							ak.append(eventlog.get_resource_by_index(index+2))
 						ak_string = ak.to_string()
 						if 'duration' not in transition_matrix[ai_string][aj_string]:
 							transition_matrix[aj_string][ak_string]['duration'] = []

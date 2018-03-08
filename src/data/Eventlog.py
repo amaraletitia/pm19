@@ -153,7 +153,7 @@ class Eventlog(pd.DataFrame):
 			if value == 'ACTIVITY':
 				ai = eventlog.get_activity_by_index(index)
 			elif value == 'RESOURCE':
-				ai = eventlog.get_resouce_by_index(index)
+				ai = eventlog.get_resource_by_index(index)
 			elif value == 'TIMESTAMP':
 				ai = eventlog.get_timestamp_by_index(index)
 			if index == 0:

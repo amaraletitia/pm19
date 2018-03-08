@@ -73,20 +73,24 @@ class FSM_Miner(object):
         }
     }
     @timefn
-    def _create_graph(self, transition_matrix, analysis_result=False, BG=False, WG=False):
+    def _create_graph(self, transition_matrix, **kwargs):
         if not pgv:  # pragma: no cover
             raise Exception('AGraph diagram requires pygraphviz')
         fsm_graph = pgv.AGraph(**self.machine_attributes)
-        if analysis_result ==False:
+        if 'analysis_result' not in kwargs:
             print("add node")
             self._add_nodes(fsm_graph,transition_matrix)
             print("add edge")
             self._add_edges(fsm_graph, transition_matrix)
         else:
+            analysis_result = kwargs['analysis_result']
+            BG = kwargs['BG']
+            WG = kwargs['WG']
             print("add annotated node")
-            self._add_nodes(fsm_graph,transition_matrix, analysis_result, BG, WG)
+            self._add_annotated_nodes(fsm_graph,transition_matrix,
+            analysis_result, BG, WG)
             print("add annotated edge")
-            self._add_edges(fsm_graph, transition_matrix, BG, WG)
+            self._add_annotated_edges(fsm_graph, transition_matrix, BG, WG)
 
 
         print("unconnect")
@@ -148,12 +152,11 @@ class FSM_Miner(object):
                 #BWDs.append((len(best_matches) - len(worst_matches))/len(cases))
             except ZeroDivisionError:
                 continue
-
         BOB_criterion = np.percentile(list(BWDs.values()), 40)
         WOW_criterion = np.percentile(list(BWDs.values()), 60)
 
 
-        for ai in transition_matrix.keys():
+        for ai in transition_matrix:
             if ai == 'START' or ai == 'END':
                 print("ignore {}".format(ai))
                 continue
@@ -164,6 +167,9 @@ class FSM_Miner(object):
                 fillcolor = self.style_attributes['node']['HIGH']['fillcolor']
             elif ai in lows.values:
                 fillcolor = self.style_attributes['node']['LOW']['fillcolor']
+            else:
+                print(ai)
+                print("NO")
             #simplification 하는 경우
             if 'dummy' in ai:
                 fillcolor = self.style_attributes['node']['DUMMY']['fillcolor']

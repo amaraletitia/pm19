@@ -52,8 +52,8 @@ if __name__ == '__main__':
 
 	#Transition Matrix
 	TM = TransitionMatrix()
-	transition_matrix = TM.get_transition_matrix(eventlog, 1, type='sequence', horizon=2)
-	transition_matrix = TM.annotate_transition_matrix(eventlog, 1, transition_matrix)
+	transition_matrix = TM.get_transition_matrix(eventlog, 4, type='sequence', horizon=2)
+	transition_matrix = TM.annotate_transition_matrix(eventlog, 4, transition_matrix)
 
 	#FSM model
 	fsm = FSM_Miner()
