@@ -5,9 +5,9 @@ class Filter(object):
 		pass
 
 	def filter_activity(self, eventlog, activities):
-		print("##complete activity filter: {}".format(len(eventlog)))
+		print("##filter activities: {}".format(len(eventlog)))
 		eventlog = eventlog.loc[eventlog['ACTIVITY'].isin(activities)]
-		print("##complete activity filter: {}".format(len(eventlog)))
+		print("##filter activities: {}".format(len(eventlog)))
 		return eventlog
 
 	def filter_eqp(self, eventlog, chamber_variety_count=20):
