@@ -56,7 +56,10 @@ if __name__ == '__main__':
 	fsm.get_graph_info(fsm_graph)
 	write_dot(fsm_graph,'test.dot')
 	fsm_graph = read_dot('test.dot')
-	layout =graphviz_layout(fsm_graph, prog='dot')
+	from networkx.readwrite import json_graph
+	print(json_graph.node_link_data(fsm_graph))
+	#layout =graphviz_layout(fsm_graph, prog='dot')
+	#print(layout)
 	from bokeh.models import ColumnDataSource, LabelSet
 
 	nodes, nodes_coordinates = zip(*sorted(layout.items()))
