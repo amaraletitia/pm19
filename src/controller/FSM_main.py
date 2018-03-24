@@ -49,7 +49,6 @@ if __name__ == '__main__':
 	remover = Remover()
 	eventlog = remover.remove_duplicate(eventlog)
 
-
 	#Transition Matrix
 	TM = TransitionMatrix()
 	transition_matrix = TM.get_transition_matrix(eventlog, 4, type='sequence', horizon=2)
