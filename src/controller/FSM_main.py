@@ -25,12 +25,13 @@ from heuristic_miner import HeuristicMiner
 
 sys.path.append(os.path.abspath(("../model")))
 from fsm import FSM_Miner
-
+"""
 sys.path.append(os.path.abspath(("../visualization")))
 from svg_widget import Visualization
 from chart_visualization import ChartVisualizer
 
 from PyQt5 import QtSvg,QtCore,QtGui,Qt,QtWidgets
+"""
 import multiprocessing
 
 
@@ -59,7 +60,7 @@ if __name__ == '__main__':
 	fsm_graph = fsm._create_graph(transition_matrix)
 	fsm.get_graph_info(fsm_graph)
 	dot = fsm.get_dot(fsm_graph)
-
+	"""
 	#Visualizer
 	app = QtWidgets.QApplication(sys.argv)
 
@@ -70,3 +71,4 @@ if __name__ == '__main__':
 	window.load('../result/state_svg.svg');
 
 	sys.exit(app.exec_())
+	"""
