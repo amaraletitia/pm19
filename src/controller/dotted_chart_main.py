@@ -4,30 +4,14 @@ import sys
 import os
 import signal
 import pandas as pd
-sys.path.append(os.path.abspath(("/Users/GYUNAM/Documents/")))
+sys.path.append(os.path.abspath(("../../../")))
 from PyProM.src.data.Eventlog import Eventlog
 from PyProM.src.data.xes_reader import XesReader
 
-#sys.path.append(os.path.abspath("../preprocessing"))
-from PyProM.src.preprocessing.preprocess import Remover
-from PyProM.src.preprocessing.preprocess import Transformer
-from PyProM.src.preprocessing.preprocess import Filtering
+from PyProM.src.preprocessing.filter import Filter
 
-#sys.path.append(os.path.abspath("../analysis"))
-from PyProM.src.analysis.classifier import Classifier
-from PyProM.src.analysis.stat_analysis import StatAnalyzer
-from PyProM.src.analysis.simplification import Simplification
-
-#sys.path.append(os.path.abspath("../mining"))
-from PyProM.src.mining.transition_matrix import TransitionMatrix
-from PyProM.src.mining.dependency_graph import DependencyGraph
-from PyProM.src.mining.heuristic_miner import HeuristicMiner
-
-#sys.path.append(os.path.abspath(("../model")))
 from PyProM.src.model.fsm import FSM_Miner
 
-#sys.path.append(os.path.abspath(("../visualization")))
-from PyProM.src.visualization.svg_widget import Visualization
 from PyProM.src.visualization.chart_visualization import ChartVisualizer
 import multiprocessing
 
@@ -41,10 +25,9 @@ if __name__ == '__main__':
 	eventlog = eventlog.assign_timestamp('Complete Timestamp')
 	eventlog = eventlog.clear_columns()
 
-	filtering = Filtering()
+	filter = Filter()
 
-	remover = Remover()
-	eventlog = remover.remove_duplicate(eventlog)
+	eventlog = filter.remove_duplicate(eventlog)
 
 	eventlog = eventlog.calculate_execution_time()
 	eventlog = eventlog.calculate_relative_time()
