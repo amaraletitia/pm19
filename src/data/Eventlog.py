@@ -4,15 +4,13 @@ import multiprocessing
 from multiprocessing import Process, Manager, Queue
 import math
 
-from importing import Import
-from xes_reader import XesReader
+from PyProM.src.data.importing import Import
+from PyProM.src.data.xes_reader import XesReader
 
 import sys
 import os
-sys.path.append(os.path.abspath("../utility"))
-from util_profile import Util_Profile
-from util_multiprocessing import Util_Multiprocessing
-
+from PyProM.src.utility.util_profile import Util_Profile
+from PyProM.src.utility.util_multiprocessing import Util_Multiprocessing
 import time
 from functools import wraps
 
@@ -114,6 +112,18 @@ class Eventlog(pd.DataFrame):
 			self._columns.append('TIMESTAMP_COMPLETE')
 		self = self.sort_values(by=['CASE_ID', 'TIMESTAMP'])
 
+		return self
+
+	def assign_cluster(self, *args):
+		count = 0
+		for arg in args:
+			if count == 0:
+				self['Cluster'] = self[arg].astype(str)
+			else:
+				self['Cluster'] += '_' + self[arg].astype(str)
+			#del self[arg]
+			count +=1
+		self._columns.append('Cluster')
 		return self
 
 	def clear_columns(self, *args):
@@ -284,6 +294,19 @@ class Eventlog(pd.DataFrame):
 
 	def count_event(self):
 		return len(self.index)
+
+	def count_cluster(self):
+		cluster_case = self.groupby('Cluster').CASE_ID.apply(list).apply(set)
+		cluster_case_count = cluster_case.apply(len)
+		cluster_case_count_mean = np.mean(cluster_case_count)
+		cluster_case_count_std = np.std(cluster_case_count)
+		print("CLUSTER count: {}".format(cluster_case_count))
+		print("CLUSTER count mean: {}".format(cluster_case_count_mean))
+		print("CLUSTER count std: {}".format(cluster_case_count_std))
+		return cluster_case_count
+
+	def count_case(self):
+		return len(set(self['CASE_ID']))
 
 	def describe(self):
 		print("# events: {}".format(len(self)))

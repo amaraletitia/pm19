@@ -6,15 +6,15 @@ import copy
 
 import sys
 import os
-sys.path.append(os.path.abspath("../utility"))
-from util_profile import Util_Profile
-from util_transform import UtilTransform
+#sys.path.append(os.path.abspath("../utility"))
+from PyProM.src.utility.util_profile import Util_Profile
+from PyProM.src.utility.util_transform import UtilTransform
 
-sys.path.append(os.path.abspath("../mining"))
-from dependency_graph import DependencyGraph
+#sys.path.append(os.path.abspath("../mining"))
+from PyProM.src.mining.dependency_graph import DependencyGraph
 
-sys.path.append(os.path.abspath(("../model")))
-from fsm import FSM_Miner
+#sys.path.append(os.path.abspath(("../model")))
+from PyProM.src.model.fsm import FSM_Miner
 
 timefn = Util_Profile.timefn
 

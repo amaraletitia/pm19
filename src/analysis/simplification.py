@@ -1,7 +1,7 @@
 import sys
 import os
-sys.path.append(os.path.abspath("../utility"))
-from util_profile import Util_Profile
+#sys.path.append(os.path.abspath("../utility"))
+from PyProM.src.utility.util_profile import Util_Profile
 
 timefn = Util_Profile.timefn
 

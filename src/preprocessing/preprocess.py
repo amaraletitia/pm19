@@ -1,6 +1,6 @@
-from remove import Remove
-from transform import Transform
-from filter import Filter
+from PyProM.src.preprocessing.remove import Remove
+from PyProM.src.preprocessing.transform import Transform
+from PyProM.src.preprocessing.filter import Filter
 
 
 class Preprocess(object):

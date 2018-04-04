@@ -1,5 +1,5 @@
 import pandas as pd
-from xes_reader import XesReader
+from PyProM.src.data.xes_reader import XesReader
 
 class Import(object):
 	def __init__(self, path, format='xes'):

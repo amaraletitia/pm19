@@ -1,10 +1,10 @@
 import sys
 import os
-sys.path.append(os.path.abspath("../data"))
-from Eventlog import Eventlog
-from xes_reader import XesReader
-from sequence import Sequence
-from abs_set import Abs_set
+#sys.path.append(os.path.abspath("../data"))
+from PyProM.src.data.Eventlog import Eventlog
+from PyProM.src.data.xes_reader import XesReader
+from PyProM.src.data.sequence import Sequence
+from PyProM.src.data.abs_set import Abs_set
 
 import pandas as pd
 import numpy as np
@@ -13,12 +13,12 @@ from copy import deepcopy
 
 from multiprocessing import Process, Manager, Queue
 
-sys.path.append(os.path.abspath("../utility"))
-from util_profile import Util_Profile
-from util_multiprocessing import Util_Multiprocessing
+#sys.path.append(os.path.abspath("../utility"))
+from PyProM.src.utility.util_profile import Util_Profile
+from PyProM.src.utility.util_multiprocessing import Util_Multiprocessing
 
-sys.path.append(os.path.abspath("../utility"))
-from transition_matrix import TransitionMatrix
+#sys.path.append(os.path.abspath("../utility"))
+from PyProM.src.mining.transition_matrix import TransitionMatrix
 
 timefn = Util_Profile.timefn
 

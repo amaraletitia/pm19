@@ -1,4 +1,4 @@
-from util_profile import Util_Profile
+from PyProM.src.utility.util_profile import Util_Profile
 
 class Util_Multiprocessing(object):
 	timefn = Util_Profile.timefn

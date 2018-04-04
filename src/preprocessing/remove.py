@@ -7,14 +7,17 @@ class Remove(object):
 		pass
 	def remove_duplicate(self, eventlog):
 		print("##remove duplicates, {}".format(len(eventlog)))
+		print("# cases: {}".format(eventlog.count_case()))
 		eventlog = eventlog.drop_duplicates()
 		eventlog = eventlog.reset_index(drop=True)
 		print("result: {}".format(len(eventlog)))
+		print("# cases: {}".format(eventlog.count_case()))
 		return eventlog
 
 	#한 컬럼을 제외한 나머지 값들이 모두 같을 때?
 	def remove_duplicates_except_one(self, eventlog, one='CHAMBER_ID'):
 		print("##remove duplicates except one, {}".format(len(eventlog)))
+		print("# cases: {}".format(eventlog.count_case()))
 		columns = list(eventlog.columns)
 		columns_except_one = [x for x in columns if x != one]
 		dup = eventlog.loc[eventlog.duplicated(columns_except_one, keep=False)]
@@ -41,18 +44,27 @@ class Remove(object):
 		except AttributeError:
 			pass
 		print("result: {}".format(len(eventlog)))
+		print("# cases: {}".format(eventlog.count_case()))
 		return eventlog
 
+
 	def remove_duplicate_chambers(self, eventlog):
-		print("##Remove_duplicates_chamber")
+		print("##Remove_duplicates_chamber, {}".format(len(eventlog)))
+		print("# cases: {}".format(eventlog.count_case()))
 		columns = list(eventlog.columns)
-		print("HERE: {}".format(columns))
 		columns_not_chamber_id = [x for x in columns if x != 'CHAMBER_ID' and x != 'UNIT_ID' and x != 'RESOURCE']
-		#print(columns_not_chamber_id)
-		#print(eventlog.duplicated(columns_not_chamber_id, keep='first'))
 		eventlog = eventlog.loc[~eventlog.duplicated(columns_not_chamber_id, keep='first')]
 
 		print("result: {}".format(len(eventlog)))
+		print("# cases: {}".format(eventlog.count_case()))
+		return eventlog
+
+	def remove_nan_cluster(self,eventlog):
+		print("##remove_nan_cluster, {}".format(len(eventlog)))
+		print("# cases: {}".format(eventlog.count_case()))
+		eventlog = eventlog.loc[eventlog['Cluster'] != 'nan']
+		print("result: {}".format(len(eventlog)))
+		print("# cases: {}".format(eventlog.count_case()))
 		return eventlog
 
 	#하나의 케이스가 두 개 이상의 수율값을 가지면 해당 케이스 제거
@@ -66,6 +78,7 @@ class Remove(object):
 
 	def remove_incomplete_wafer(self, eventlog, start, end):
 		print("##remove incompleted wafer {}, Start_step: {}, End_step: {}".format(len(eventlog),start,end))
+		print("# cases: {}".format(eventlog.count_case()))
 		user_defined_start = start
 		user_defined_end = end
 
@@ -76,6 +89,7 @@ class Remove(object):
 
 		eventlog = eventlog[eventlog.CASE_ID.isin(list(set(START_STEP) & set(END_STEP)))]
 		print("result: {}".format(len(eventlog)))
+		print("# cases: {}".format(eventlog.count_case()))
 		return eventlog
 
 	def remove_incomplete_lot(self, eventlog, wafer_count=20):
@@ -94,7 +108,7 @@ class Remove(object):
 
 	def remove_incomplete_flow(self, eventlog, num_activities):
 		print("##Remove diff_step_flow: {}".format(len(eventlog)))
-
+		print("# cases: {}".format(eventlog.count_case()))
 		distinct_case_activity = eventlog.groupby('CASE_ID').ACTIVITY.apply(list)
 		removes = []
 		for case in distinct_case_activity.index:
@@ -103,10 +117,12 @@ class Remove(object):
 		#print(len(removes))
 		eventlog = eventlog.loc[~eventlog['CASE_ID'].isin(removes), :]
 		print("result: {}".format(len(eventlog)))
+		print("# cases: {}".format(eventlog.count_case()))
 		return eventlog
 
 	def remove_diff_flow(self, eventlog):
 		print("##Remove_diff_flow: {}".format(len(eventlog)))
+		print("# cases: {}".format(eventlog.count_case()))
 		activities_in_case = eventlog.groupby('CASE_ID').ACTIVITY.apply(list)
 		removes = []
 		for index, row in activities_in_case.iteritems():
@@ -116,6 +132,7 @@ class Remove(object):
 
 		eventlog = eventlog.loc[~eventlog['CASE_ID'].isin(removes), :]
 		print("result: {}".format(len(eventlog)))
+		print("# cases: {}".format(eventlog.count_case()))
 		return eventlog
 
 

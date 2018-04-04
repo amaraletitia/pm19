@@ -3,31 +3,31 @@ import sys
 import os
 import signal
 import pandas as pd
-sys.path.append(os.path.abspath("../data"))
-from Eventlog import Eventlog
-from xes_reader import XesReader
+sys.path.append(os.path.abspath("/Users/GYUNAM/Documents/"))
+from PyProM.src.data.Eventlog import Eventlog
+from PyProM.src.data.xes_reader import XesReader
 
-sys.path.append(os.path.abspath("../preprocessing"))
-from preprocess import Remover
-from preprocess import Transformer
-from preprocess import Filtering
+#sys.path.append(os.path.abspath("../preprocessing"))
+from PyProM.src.preprocessing.preprocess import Remover
+from PyProM.src.preprocessing.preprocess import Transformer
+from PyProM.src.preprocessing.preprocess import Filtering
 
-sys.path.append(os.path.abspath("../analysis"))
-from classifier import Classifier
-from stat_analysis import StatAnalyzer
-from simplification import Simplification
+#sys.path.append(os.path.abspath("../analysis"))
+from PyProM.src.analysis.classifier import Classifier
+from PyProM.src.analysis.stat_analysis import StatAnalyzer
+from PyProM.src.analysis.simplification import Simplification
 
-sys.path.append(os.path.abspath("../mining"))
-from transition_matrix import TransitionMatrix
-from dependency_graph import DependencyGraph
-from heuristic_miner import HeuristicMiner
+#sys.path.append(os.path.abspath("../mining"))
+from PyProM.src.mining.transition_matrix import TransitionMatrix
+from PyProM.src.mining.dependency_graph import DependencyGraph
+from PyProM.src.mining.heuristic_miner import HeuristicMiner
 
-sys.path.append(os.path.abspath(("../model")))
-from fsm import FSM_Miner
+#sys.path.append(os.path.abspath(("../model")))
+from PyProM.src.model.fsm import FSM_Miner
 
-sys.path.append(os.path.abspath(("../visualization")))
-from svg_widget import Visualization
-from chart_visualization import ChartVisualizer
+#sys.path.append(os.path.abspath(("../visualization")))
+from PyProM.src.visualization.svg_widget import Visualization
+from PyProM.src.visualization.chart_visualization import ChartVisualizer
 
 from PyQt5 import QtSvg,QtCore,QtGui,Qt,QtWidgets
 import multiprocessing
