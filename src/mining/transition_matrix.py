@@ -34,6 +34,7 @@ class TransitionMatrix(object):
 		output = eventlog.parallelize(self._produce_transition_matrix, workers, self.type, self.horizon, target)
 
 		transition_matrix = Util_Multiprocessing.join_dict(output)
+		#print(transition_matrix)
 		return transition_matrix
 
 
@@ -82,15 +83,15 @@ class TransitionMatrix(object):
 		print("Finish")
 		x.append(transition_matrix)
 
-	def annotate_transition_matrix(self, eventlog, workers, transition_matrix, value = 'duration'):
+	def annotate_transition_matrix(self, eventlog, workers, transition_matrix, value = 'duration', source_time='default', final_time='default'):
 
-		output = eventlog.parallelize(self._annotate_transition_matrix, workers, transition_matrix,value)
+		output = eventlog.parallelize(self._annotate_transition_matrix, workers, transition_matrix,value,source_time, final_time)
 
 		transition_matrix = Util_Multiprocessing.join_dict(output)
 		return transition_matrix
 
 	@timefn
-	def _annotate_transition_matrix(self, eventlog, x, transition_matrix, value='duration'):
+	def _annotate_transition_matrix(self, eventlog, x, transition_matrix, value='duration', source_time='default', final_time='default'):
 		print("produce annotated transition matrix")
 
 		#start node
@@ -125,29 +126,41 @@ class TransitionMatrix(object):
 					aj.append(eventlog.get_activity_by_index(index+1))
 				elif self.target == 'RESOURCE':
 					aj.append(eventlog.get_resource_by_index(index+1))
+
 				ai_string = ai.to_string()
 				aj_string = aj.to_string()
+
 				if value == 'CASE_ID':
 					if 'case' not in transition_matrix[ai_string][aj_string]:
 						transition_matrix[ai_string][aj_string]['case'] = []
 
 					if caseid not in transition_matrix[ai_string][aj_string]['case']:
 						transition_matrix[ai_string][aj_string]['case'].append(caseid)
-				if value == 'duration':
-					next_caseid = eventlog.get_caseid_by_index(index+2)
-					if caseid == next_caseid:
-						ak = deepcopy(aj)
-						if self.target == 'ACTIVITY':
-							ak.append(eventlog.get_activity_by_index(index+2))
-						elif self.target == 'RESOURCE':
-							ak.append(eventlog.get_resource_by_index(index+2))
-						ak_string = ak.to_string()
+				try:
+					if value == 'duration':
+						"""
+						horizon 2 이상일 때 고려하는 방법 고민
+						next_caseid = eventlog.get_caseid_by_index(index+2)
+						if caseid == next_caseid:
+							ak = deepcopy(aj)
+							if self.target == 'ACTIVITY':
+								ak.append(eventlog.get_activity_by_index(index+2))
+							elif self.target == 'RESOURCE':
+								ak.append(eventlog.get_resource_by_index(index+2))
+							ak_string = ak.to_string()
+						"""
 						if 'duration' not in transition_matrix[ai_string][aj_string]:
-							transition_matrix[aj_string][ak_string]['duration'] = []
-						duration = eventlog.get_timestamp_by_index(index+1) - eventlog.get_timestamp_by_index(index)
+							transition_matrix[ai_string][aj_string]['duration'] = []
+						if source_time == 'default':
+							duration = eventlog.get_timestamp_by_index(index+1) - eventlog.get_timestamp_by_index(index)
+						else:
+							duration = eventlog.get_col_value_by_index(source_time,index+1) - eventlog.get_col_value_by_index(final_time, index+1)
 						duration = divmod(duration.days * 86400 + duration.seconds, 86400)
 						duration = 24*duration[0] + duration[1]/3600
-						transition_matrix[aj_string][ak_string]['duration'].append(duration)
+						transition_matrix[ai_string][aj_string]['duration'].append(duration)
+				except KeyError:
+					print(ai_string, aj_string)
+					break
 
 
 			else:

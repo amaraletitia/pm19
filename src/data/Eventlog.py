@@ -101,17 +101,9 @@ class Eventlog(pd.DataFrame):
 		return self
 
 	@timefn
-	def assign_timestamp(self, *args, format = '%Y/%m/%d %H:%M:%S'):
-		if len(args) == 1:
-			self['TIMESTAMP'] = pd.to_datetime(self[args[0]], format=format)
-			self._columns.append('TIMESTAMP')
-		if len(args) == 2:
-			self['TIMESTAMP'] = pd.to_datetime(self[args[0]], format=format)
-			self['TIMESTAMP_COMPLETE'] = pd.to_datetime(self[args[1]], format=format)
-			self._columns.append('TIMESTAMP')
-			self._columns.append('TIMESTAMP_COMPLETE')
-		self = self.sort_values(by=['CASE_ID', 'TIMESTAMP'])
-
+	def assign_timestamp(self, *args, name = 'TIMESTAMP', format = '%Y/%m/%d %H:%M:%S'):
+		self[name] = pd.to_datetime(self[args[0]], format=format)
+		self._columns.append(name)
 		return self
 
 	def assign_cluster(self, *args):
@@ -125,6 +117,9 @@ class Eventlog(pd.DataFrame):
 			count +=1
 		self._columns.append('Cluster')
 		return self
+
+	def sort(self, by=['CASE_ID']):
+		self.sort_values(by, inplace=True)
 
 	def clear_columns(self, *args):
 
@@ -166,6 +161,8 @@ class Eventlog(pd.DataFrame):
 				ai = eventlog.get_resource_by_index(index)
 			elif value == 'TIMESTAMP':
 				ai = eventlog.get_timestamp_by_index(index)
+			else:
+				ai = eventlog.get_col_value_by_index(value, index)
 			if index == 0:
 				event_trace[instance.CASE_ID] = [ai]
 				continue
@@ -194,7 +191,9 @@ class Eventlog(pd.DataFrame):
 		return trace_count
 
 
-
+	def get_caseids(self):
+		unique_caseids = self['CASE_ID'].unique()
+		return unique_caseids
 
 	def get_activities(self):
 		unique_activities = self['ACTIVITY'].unique()
@@ -204,9 +203,9 @@ class Eventlog(pd.DataFrame):
 		unique_timestamps = self['TIMESTAMP'].unique()
 		return unique_timestamps
 
-	def get_caseids(self):
-		unique_caseids = self['CASE_ID'].unique()
-		return unique_caseids
+	#특정 col의 unique한 값을 리스트 형태로 리턴
+	def get_col_values(self,col):
+		return list(set(self[col]))
 
 	def get_first_caseid(self):
 		return self['CASE_ID'][0]
@@ -223,90 +222,114 @@ class Eventlog(pd.DataFrame):
 	def get_timestamp_by_index(self, index):
 		return self['TIMESTAMP'][index]
 
+	def get_col_value_by_index(self, col, index):
+		return self[col][index]
 
+	#특정 col의 특정 value를 포함하는 row를 리턴
+	def get_col_value(self, col, value):
+		return self.loc[self[col]==value]
 
 
 	def filter(self, criterion, value):
 		return self.loc[self[criterion] == value, :]
 
 
-	def calculate_execution_time(self, unit='hour'):
-		execution_times = []
-		caseid = self.get_first_caseid()
-		count = 0
-
-		for instance in self.itertuples():
-			index = instance.Index
-			if index == 0:
-				execution_times.append(float('nan'))
-				continue
-			previous_caseid = self.get_caseid_by_index(index-1)
-			if instance.CASE_ID == previous_caseid:
-				execution_time = self.get_timestamp_by_index(index) - self.get_timestamp_by_index(index-1)
-				execution_time = divmod(execution_time.days * 86400 + execution_time.seconds, 86400)
-				if unit == 'hour':
-					execution_time = 24*execution_time[0] + execution_time[1]/(60*60)
-				if unit == 'day':
-					execution_time = execution_time[0] + execution_time[1]/(60*60*24)
-				execution_times.append(execution_time)
-				count = 1
-			else:
-				execution_times.append(float('nan'))
-		self = self.assign(execution_time = execution_times)
-		return self
-
-	def calculate_relative_time(self, unit = 'day'):
-		self.calculate_execution_time(unit)
-		relative_times = []
-		for instance in self.itertuples():
-			index = instance.Index
-			if math.isnan(instance.execution_time):
-				relative_time = 0
-			else:
-				relative_time = relative_times[index-1] + instance.execution_time
-			relative_times.append(relative_time)
-		self = self.assign(relative_time = relative_times)
-		return self
-
-	def analyze_performance(self, value = 'execution_time', metric = 'mean', *args, **kwargs):
-		if 'dim_1' in kwargs:
-			dim_1 = kwargs['dim_1']
-		if 'dim_2' in kwargs:
-			dim_2 = kwargs['dim_2']
-		if 'value' in kwargs:
-			value = kwargs['value']
-		if metric == 'mean':
-			result = self.groupby([dim_1,dim_2])[value].mean()
-		if metric == 'median':
-			result = self.groupby([dim_1,dim_2])[value].median()
-		if metric == 'min':
-			result = self.groupby([dim_1,dim_2])[value].min()
-		if metric == 'max':
-			result = self.groupby([dim_1,dim_2])[value].max()
-		if metric == 'std':
-			result = self.groupby([dim_1,dim_2])[value].std()
-		if metric == 'frequency':
-			result = self.groupby([dim_1,dim_2])[value].count()
-		if metric == 'frequency_per_case':
-			result = self.groupby([dim_1,dim_2])[value].count()/len(self.get_caseids())
-
-		return result
-
+	#eventlog의 event 총 개수를 리턴
 	def count_event(self):
 		return len(self.index)
 
-	def count_cluster(self):
-		cluster_case = self.groupby('Cluster').CASE_ID.apply(list).apply(set)
-		cluster_case_count = cluster_case.apply(len)
-		cluster_case_count_mean = np.mean(cluster_case_count)
-		cluster_case_count_std = np.std(cluster_case_count)
-		print("CLUSTER count: {}".format(cluster_case_count))
-		print("CLUSTER count mean: {}".format(cluster_case_count_mean))
-		print("CLUSTER count std: {}".format(cluster_case_count_std))
-		return cluster_case_count
-
+	#eventlog 내 case의 개수를 리턴
 	def count_case(self):
 		return len(set(self['CASE_ID']))
+
+	#특정 col의 unique한 값의 개수를 리턴
+	def count_col_values(self, col):
+		return len(set(self[col]))
+
+	#모든 col의 unique한 값의 개수를 프린트함
+	def show_col_counts(self):
+		columns = self.columns
+		for col in columns:
+			print("unique counts of {}: {}".format(col,len(set(self[col]))))
+
+	def count_col_case(self, col):
+		col_case = self.groupby(col).CASE_ID.apply(list).apply(set)
+		col_case_count = col_case.apply(len)
+		col_case_count_mean = np.mean(col_case_count)
+		col_case_count_std = np.std(col_case_count)
+		print("CLUSTER count: {}".format(col_case_count))
+		print("CLUSTER count mean: {}".format(col_case_count_mean))
+		print("CLUSTER count std: {}".format(col_case_count_std))
+		return col_case_count
+
+	def count_duplicate_values(self, eventlog, **kwargs):
+		"""특정 값이 중복되는 경우 중복횟수의 빈도를 return함
+		e.g. 1번 중복: 100, 2번 중복: 300
+
+		Keyword arguments:
+		col -- 특정 col이 중복된 것을 확인하고 싶은 경우 (default: ACTIVITY)
+
+		"""
+		if 'col' in kwargs:
+			col = kwargs['col']
+			traces = eventlog.get_event_trace(workers=4, value=col)
+		else:
+			traces = eventlog.get_event_trace(workers=4, value='ACTIVITY')
+		count=0
+		inv_act_counts = []
+		for t in traces:
+			act_count = dict(Counter(traces[t]))
+
+			inv_act_count = dict()
+			for k,v in act_count.items():
+				if v < 2:
+					continue
+				if v in inv_act_count:
+					inv_act_count[v].append(k)
+				else:
+					inv_act_count[v] = [k]
+			inv_act_counts.append(inv_act_count)
+
+		count_result_step = dict()
+		for inv_act_count in inv_act_counts:
+			for k in inv_act_count:
+				if k not in count_result_step:
+					count_result_step[k] = 1
+				else:
+					count_result_step[k] += 1
+
+		result = pd.DataFrame(list(count_result_step.items()), columns=['repetition', 'count'])
+		return result
+
+	def count_loops(self, eventlog, **kwargs):
+		"""step이 연속된 경우를 count함. Step1-->Step1인 경우 1, Step1-->Step1-->Step1인 경우 2, 동시에 동일 device에서 수행되었는지도 계산함
+
+		Keyword arguments:
+		col -- 특정 col이 중복된 것을 확인하고 싶은 경우 (default: ACTIVITY)
+		value -- 특정 값이 연속된 것을 확인하고 싶은 경우 e.g. 'Null'
+		"""
+		if 'col' in kwargs:
+			col = kwargs['col']
+			traces = eventlog.get_event_trace(workers=4, value=col)
+		else:
+			traces = eventlog.get_event_trace(workers=4, value='ACTIVITY')
+		count=0
+		if 'value' in kwargs:
+			value = kwargs['value']
+		else:
+			value = 'default'
+		for t, r in zip(traces, resource_traces):
+			for index, act in enumerate(traces[t]):
+				if index == len(traces[t]) -1:
+					continue
+				if value == 'default':
+						count+=1
+				else:
+					if act == value and traces[t][index+1] == value:
+						count+=1
+		print("count_consecutives: {}".format(count))
+		return count
+
 
 	def describe(self):
 		print("# events: {}".format(len(self)))

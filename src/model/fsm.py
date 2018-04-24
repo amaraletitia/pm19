@@ -5,6 +5,7 @@ import sys
 import os
 #sys.path.append(os.path.abspath("../utility"))
 from PyProM.src.utility.util_profile import Util_Profile
+import networkx as nx
 
 timefn = Util_Profile.timefn
 
@@ -73,7 +74,7 @@ class FSM_Miner(object):
         }
     }
     @timefn
-    def _create_graph(self, transition_matrix, **kwargs):
+    def _create_graph(self, transition_matrix, loop='default', **kwargs):
         if not pgv:  # pragma: no cover
             raise Exception('AGraph diagram requires pygraphviz')
         fsm_graph = pgv.AGraph(**self.machine_attributes)
@@ -81,16 +82,19 @@ class FSM_Miner(object):
             print("add node")
             self._add_nodes(fsm_graph,transition_matrix)
             print("add edge")
-            self._add_edges(fsm_graph, transition_matrix)
+            if 'edge_threshold' not in kwargs:
+                self._add_edges(fsm_graph, transition_matrix,loop)
+            else:
+                self._add_edges(fsm_graph, transition_matrix, loop, edge_threshold=kwargs['edge_threshold'])
         else:
             analysis_result = kwargs['analysis_result']
             BG = kwargs['BG']
             WG = kwargs['WG']
             print("add annotated node")
-            self._add_annotated_nodes(fsm_graph,transition_matrix,
+            self._add_high_low_nodes(fsm_graph,transition_matrix,
             analysis_result, BG, WG)
             print("add annotated edge")
-            self._add_annotated_edges(fsm_graph, transition_matrix, BG, WG)
+            self._add_high_low_edges(fsm_graph, transition_matrix, BG, WG)
 
 
         print("unconnect")
@@ -108,11 +112,46 @@ class FSM_Miner(object):
         """
         #print(indeg)
         zero_deg = [n for n in range(len(outdeg)) if (outdeg[n] == 0 or indeg[n] == 0)]
-        #print("Remove nodes: {}".format(zero_deg))
+        print("Remove nodes: {}".format(zero_deg))
+        if 'start_end' not in kwargs:
+            start_end = True
+        else:
+            start_end = kwargs['start_end']
+
+        while zero_deg:
+            candidate_nodes = [total_nodes[x] for x in zero_deg]
+            print("candidate nodes: {}".format(candidate_nodes))
+            if start_end == False:
+                fsm_graph.remove_nodes_from(candidate_nodes)
+            else:
+                if 'START' in candidate_nodes:
+                    candidate_nodes.remove('START')
+                if 'END' in candidate_nodes:
+                    candidate_nodes.remove('END')
+                fsm_graph.remove_node(candidate_nodes)
+
+            #node가 삭제됨에따라 indegree/outdegree update 됨
+            total_nodes = fsm_graph.nodes()
+            indeg = fsm_graph.in_degree()
+            outdeg = fsm_graph.out_degree()
+            zero_deg = [n for n in range(len(outdeg)) if (outdeg[n] == 0 or indeg[n] == 0)]
+            print("remove nodes: {}".format(candidate_nodes))
+        """
         for x in zero_deg:
-            if total_nodes[x] not in ['START', 'END']:
-                fsm_graph.remove_node(total_nodes[x])
-        #print("final nodes: {}".format(fsm_graph.nodes()))
+            print(total_nodes[x])
+
+                if total_nodes[x] not in ['START', 'END']:
+                    fsm_graph.remove_node(total_nodes[x])
+            else:
+                if kwargs['start_end'] == False:
+                    fsm_graph.remove_node(total_nodes[x])
+                else:
+                    if total_nodes[x] not in ['START', 'END']:
+                        fsm_graph.remove_node(total_nodes[x])
+
+        """
+        print("final nodes: {}".format(fsm_graph.nodes()))
+        print("final nodes: {}".format(fsm_graph.edges()))
         setattr(fsm_graph, 'style_attributes', self.style_attributes)
         return fsm_graph
 
@@ -128,7 +167,7 @@ class FSM_Miner(object):
                 continue
             fsm_graph.add_node(ai, shape = shape, style = style, penwidth = penwidth, fontsize = fontsize)
 
-    def _add_annotated_nodes(self, fsm_graph, transition_matrix, analysis_result, BOB_group, WOW_group):
+    def _add_high_low_nodes(self, fsm_graph, transition_matrix, analysis_result, BOB_group, WOW_group):
         dummies = analysis_result.loc[analysis_result['LCresult'] == 'DUMMY', 'RESOURCE']
         highs = analysis_result.loc[analysis_result['LCresult'] == 'BOB', 'RESOURCE']
         lows = analysis_result.loc[analysis_result['LCresult'] == 'WOW', 'RESOURCE']
@@ -187,7 +226,7 @@ class FSM_Miner(object):
             fsm_graph.add_node(ai, shape = shape, color = color, fillcolor = fillcolor, style = style, penwidth = penwidth, fontsize = fontsize)
 
     @timefn
-    def _add_edges(self, fsm_graph, transition_matrix):
+    def _add_edges(self, fsm_graph, transition_matrix, loop='default', edge_threshold='default'):
         penwidth = self.style_attributes['node']['default']['penwidth']
         #arc thickness
         values = [transition_matrix[ai][aj]['count'] for ai in transition_matrix for aj in transition_matrix[ai]]
@@ -199,6 +238,8 @@ class FSM_Miner(object):
 
         for ai in transition_matrix:
             for aj in transition_matrix[ai]:
+                if ai == aj:
+                    continue
                 if ai == 'START' or ai == 'END':
                     fsm_graph.add_edge(ai, aj, label=transition_matrix[ai][aj]['count'], penwidth = 15)
                     continue
@@ -207,11 +248,14 @@ class FSM_Miner(object):
                 x = transition_matrix[ai][aj]['count']
                 x = float(x)
                 y = y_min + (y_max-y_min) * float(x-x_min) / float(x_max-x_min)
-
-                fsm_graph.add_edge(ai, aj, label=transition_matrix[ai][aj]['count'], penwidth = 15)
+                if edge_threshold != 'default':
+                    if transition_matrix[ai][aj]['count'] > edge_threshold:
+                        fsm_graph.add_edge(ai, aj, label=transition_matrix[ai][aj]['count'], penwidth = 15)
+                else:
+                    fsm_graph.add_edge(ai, aj, label=transition_matrix[ai][aj]['count'], penwidth = 15)
 
     @timefn
-    def _add_annotated_edges(self, fsm_graph, transition_matrix, BOB_group, WOW_group):
+    def _add_high_low_edges(self, fsm_graph, transition_matrix, BOB_group, WOW_group):
         penwidth = self.style_attributes['node']['default']['penwidth']
         #arc thickness
         values = [transition_matrix[ai][aj]['count'] for ai in transition_matrix for aj in transition_matrix[ai]]

@@ -8,6 +8,8 @@ sys.path.append(os.path.abspath(("../../../")))
 from PyProM.src.data.Eventlog import Eventlog
 from PyProM.src.data.xes_reader import XesReader
 
+from PyProM.src.analysis.basic_performance_analysis import BPA
+
 from PyProM.src.preprocessing.filter import Filter
 
 from PyProM.src.model.fsm import FSM_Miner
@@ -29,8 +31,10 @@ if __name__ == '__main__':
 
 	eventlog = filter.remove_duplicate(eventlog)
 
-	eventlog = eventlog.calculate_execution_time()
-	eventlog = eventlog.calculate_relative_time()
+	Bpa = BPA()
+
+	eventlog = Bpa.calculate_execution_time(eventlog)
+	eventlog = Bpa.calculate_relative_time(eventlog)
 
 	CV = ChartVisualizer()
 	CV.produce_dotted_chart(eventlog, _type = 'RESOURCE', _time = 'relative')
