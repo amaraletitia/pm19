@@ -106,6 +106,23 @@ class Eventlog(pd.DataFrame):
 		self._columns.append(name)
 		return self
 
+	def assign_attr(self, **kwargs):
+		"""
+		이 함수는, ~~~~다.
+		#할일: 컬럼명만 바꾸는 것으로!
+		:param kwargs: old_col=데이터에 포함된 컬럼명,  new_col=생성한 이벤트로그에 지정할 컬럼명
+		:return: 이벤트로그
+		"""
+		if 'old_col' in kwargs:
+			old_col = kwargs['old_col']
+		if 'new_col' in kwargs:
+			new_col = kwargs['new_col']
+		else:
+			new_col = kwargs['old_col']
+		self[new_col] = self[old_col]
+		del self[old_col]
+		return self
+
 	def assign_cluster(self, *args):
 		count = 0
 		for arg in args:
