@@ -33,7 +33,7 @@ class BPA(object):
 		return eventlog
 
 	def calculate_relative_time(self, eventlog, unit = 'day'):
-		eventlog.calculate_execution_time(unit)
+		self.calculate_execution_time(eventlog, unit)
 		relative_times = []
 		for instance in eventlog.itertuples():
 			index = instance.Index

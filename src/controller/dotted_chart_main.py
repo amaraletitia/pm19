@@ -37,4 +37,4 @@ if __name__ == '__main__':
 	eventlog = Bpa.calculate_relative_time(eventlog)
 
 	CV = ChartVisualizer()
-	CV.produce_dotted_chart(eventlog, _type = 'RESOURCE', _time = 'relative')
+	CV.produce_dotted_chart(eventlog, x='TIMESTAMP', y='CASE_ID', _type = 'ACTIVITY', _time = 'actual')

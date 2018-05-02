@@ -9,7 +9,7 @@ class ChartVisualizer(object):
 	def __init__(self, *args, **kwargs):
 		super(ChartVisualizer, self).__init__(*args, **kwargs)
 
-	def produce_bar(self, df, sort_by=0, ascending=True):
+	def produce_bar(self, df, sort_by=0, ascending=True, label=True):
 		if isinstance(df, dict):
 			df = pd.DataFrame(list(df.items()), columns=['x', 'count'])
 		cols = df.columns
@@ -22,15 +22,15 @@ class ChartVisualizer(object):
 		TOOLS = "hover,save,pan,box_zoom,reset,wheel_zoom"
 		if len(df[cols[0]]) < 20:
 			p = figure(x_range=list(df[cols[0]]), plot_height=500, tools = TOOLS, toolbar_location='below', title="Counts")
-			p.vbar(x=cols[0], top=cols[1], width=0.5, source=source, fill_color=factor_cmap(cols[0], palette=Category20c[19], factors=list(df[cols[0]])))
+			p.vbar(x=cols[0], top=cols[1], width=0.5, source=source, fill_color=factor_cmap(cols[0], palette=Spectral11, factors=list(df[cols[0]])))
 		else:
 			p = figure(x_range=list(df[cols[0]]), sizing_mode='stretch_both', tools = TOOLS, toolbar_location='below', title="Counts")
 			p.vbar(x=cols[0], top=cols[1], width=0.5, source=source)
-
-		labels = LabelSet(x=cols[0], text=cols[1], y_offset=8,
-                  text_font_size="10pt", text_color="#000000",
-                  source=source, text_align='center')
-		p.add_layout(labels)
+		if label == True:
+			labels = LabelSet(x=cols[0], text=cols[1], y_offset=8,
+	                  text_font_size="10pt", text_color="#000000",
+	                  source=source, text_align='center')
+			p.add_layout(labels)
 
 		p.legend.orientation = "horizontal"
 		p.legend.location = "top_center"
@@ -61,47 +61,39 @@ class ChartVisualizer(object):
 
 		show(p)
 
-	def produce_dotted_chart(self,eventlog, _type = 'ACTIVITY', _time = 'actual'):
-
-		activities = eventlog.get_activities()
+	def produce_dotted_chart(self,eventlog, x='TIMESTAMP', y = 'CASE_ID', _type = 'ACTIVITY', _time = 'actual'):
 		TOOLS = "pan,wheel_zoom,box_zoom,reset,save,box_select"
 		TOOLS = "pan,wheel_zoom,box_zoom,reset,save".split(',')
-		eventlog['x_time'] = [x.strftime("%Y-%m-%d") for x in eventlog['TIMESTAMP']]
-
-		hover = HoverTool(
-			tooltips=[
-			("CASE_ID", "@CASE_ID"),
-			("ACTIVITY", "@ACTIVITY"),
-			("RESOURCE", "@RESOURCE"),
-			("TIMESTAMP", "@x_time"),
-			]
-		)
-		TOOLS.append(hover)
+		#eventlog.loc[:,'x_time'] = [x.strftime('%Y-%m-%d %H') for x in eventlog[x]]
 
 
-		p = figure(tools = TOOLS, sizing_mode = 'stretch_both', title="Years vs mpg with jittering")
+
+
 
 		# Get the colors for the boxes.
 
 		colors = self.color_list_generator(eventlog, _type)
-		eventlog['colors'] = colors
-
-
+		eventlog.loc[:, 'colors'] = colors
+		eventlog = eventlog.col_val_to_numeric(y)
+		hover = HoverTool(
+			tooltips=[
+			('new_col', '@new_col'),
+			("{}".format(_type), "@{}".format(_type)),
+			("{}".format(x), "@{}".format(x)),
+			]
+		)
+		TOOLS.append(hover)
+		p = figure(tools = TOOLS, sizing_mode = 'stretch_both', title="Dotted Chart")
 
 		source = ColumnDataSource(eventlog)
 		if _time == 'actual':
-			p.circle(x='TIMESTAMP', y='CASE_ID', source = source, color = 'colors', alpha=0.5, legend = _type)
-			p.xaxis.formatter=DatetimeTickFormatter(
-	        hours=["%d %B %Y"],
-	        days=["%d %B %Y"],
-	        months=["%d %B %Y"],
-	        years=["%d %B %Y"])
+			p.circle(x=x, y='new_col', source = source, color = 'colors', alpha=1, legend = _type)
+			p.xaxis.formatter=DatetimeTickFormatter(hours=["%H %d %B %Y"], days=["%d %B %Y"], months=["%d %B %Y"], years=["%d %B %Y"])
 		if _time == 'relative':
-			p.circle(x='relative_time', y='CASE_ID', source = source, color = 'colors', alpha=0.5, legend = _type)
-
+			p.circle(x='relative_time', y=y, source = source, color = 'colors', alpha=1, legend = _type)
 
 		p.legend.location = "top_left"
-		#p.legend.click_policy="hide"
+		#p.legend.click_policy="mute"
 		show(p)
 
 	def produce_pattern_analysis(self, eventlog, y, x):
@@ -189,6 +181,7 @@ class ChartVisualizer(object):
 	    """
 	    # Get the number of colors we'll need for the plot.
 	    interval = int(256/len(df[treatment_col].unique()))
+	    print("interval: {}".format(interval))
 	    colors = [Viridis256[x] for x in range(255, 0, -interval)]
 	    # Create a map between treatment and color.
 	    colormap = {i: colors[k] for k,i in enumerate(df[treatment_col].unique())}

@@ -28,9 +28,9 @@ def timefn(fn):
 timefn = Util_Profile.timefn
 class Eventlog(pd.DataFrame):
 	"""docstring for Eventlog"""
-	_columns = []
 	def __init__(self, *args, **kwargs):
 		super(Eventlog, self).__init__(*args, **kwargs)
+		self._columns = []
 
 
 	@property
@@ -47,8 +47,8 @@ class Eventlog(pd.DataFrame):
 			return df
 
 	@classmethod
-	def from_txt(cls, path):
-		df = pd.read_csv(path, sep = '\t', index_col = False, dtype={'ROOT_LOT_ID':'str', 'WAFER_ID':'str', 'STEP_SEQ':'str', 'TKIN_TIME':'str', 'TKOUT_TIME':'str', 'EQP_ID':'str', 'EQP_MODEL_NAME':'str', 'PPID':'str', 'CHAMBER_ID':'str', 'UNIT_ID':'str', 'VALUE':'float'})
+	def from_txt(cls, path,sep='\t'):
+		df = pd.read_csv(path, sep = sep, index_col = False, dtype={'ROOT_LOT_ID':'str', 'WAFER_ID':'str', 'STEP_SEQ':'str', 'TKIN_TIME':'str', 'TKOUT_TIME':'str', 'EQP_ID':'str', 'EQP_MODEL_NAME':'str', 'PPID':'str', 'CHAMBER_ID':'str', 'UNIT_ID':'str', 'VALUE':'float'})
 		return Eventlog(df)
 
 	"""
@@ -72,6 +72,7 @@ class Eventlog(pd.DataFrame):
 			#del self[arg]
 			count +=1
 		self._columns.append('CASE_ID')
+		print(self._columns)
 		return self
 
 	@timefn
@@ -85,6 +86,7 @@ class Eventlog(pd.DataFrame):
 			#del self[arg]
 			count +=1
 		self._columns.append('ACTIVITY')
+		print(self._columns)
 		return self
 
 	@timefn
@@ -136,11 +138,16 @@ class Eventlog(pd.DataFrame):
 		return self
 
 	def sort(self, by=['CASE_ID']):
-		self.sort_values(by, inplace=True)
+		self = self.sort_values(by)
+		return self
 
-	def clear_columns(self, *args):
-
-		return self[self._columns]
+	def clear_columns(self, *args, **kwargs):
+		if 'extra' in kwargs:
+			extra = kwargs['extra']
+		else:
+			extra = []
+		self = self[self._columns]
+		return self
 
 
 
@@ -168,7 +175,6 @@ class Eventlog(pd.DataFrame):
 
 	def _get_event_trace(self, eventlog, x, value='ACTIVITY'):
 		event_trace = dict()
-		caseid = eventlog.get_first_caseid()
 		count = 0
 		for instance in eventlog.itertuples():
 			index = instance.Index
@@ -245,6 +251,33 @@ class Eventlog(pd.DataFrame):
 	#특정 col의 특정 value를 포함하는 row를 리턴
 	def get_col_value(self, col, value):
 		return self.loc[self[col]==value]
+
+	def change_col_value(self, col, old_val, new_val):
+		self.loc[self[col]==old_val, col] = new_val
+		return self
+
+	def col_val_to_numeric(self, col):
+		"""
+		To make a chart using bokeh, x values and y values must be numeric.
+		Accordingly, change column values to numeric so that it can be properly drawn by bokeh
+
+		Key arguements
+		col -- column to be converted to numeric
+		"""
+		self.sort_values(by=col, inplace=True)
+		self.reset_index(drop=True, inplace=True)
+		indexs = []
+		i=1
+		for index, instance in self.iterrows():
+			if index==0:
+				indexs.append(i)
+				continue
+			value = self[col][index-1]
+			if instance[col] != value:
+				i+=1
+			indexs.append(i)
+		self.loc[:, 'new_col'] = indexs
+		return self
 
 
 	def filter(self, criterion, value):
