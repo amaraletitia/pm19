@@ -123,6 +123,7 @@ class Eventlog(pd.DataFrame):
 			new_col = kwargs['old_col']
 		self[new_col] = self[old_col]
 		del self[old_col]
+		self._columns.append(new_col)
 		return self
 
 	def assign_cluster(self, *args):
