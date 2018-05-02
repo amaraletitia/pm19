@@ -283,6 +283,9 @@ class Eventlog(pd.DataFrame):
 	def filter(self, criterion, value):
 		return self.loc[self[criterion] == value, :]
 
+	# 특정 col에 특정 value를 포함하는 row를 삭제
+	def remove_col_value(self, col, value):
+		return self.loc[self[col] != value]
 
 	#eventlog의 event 총 개수를 리턴
 	def count_event(self):
