@@ -426,6 +426,8 @@ class Eventlog(pd.DataFrame):
 		return output
 
 	#Relation Dictionary(key : AfterActovoty,, value : PreActivity list)
+	##You need to specify the objective of this function
+	##Additionally, please try to make the code below more efficient. (Both in terms of performance and visibility)
 	def relation_dictionary(self, pre_col, aft_col):
 		relation_set = {}
 		aft_activity_list = self.get_col_values(pre_col)
