@@ -47,7 +47,7 @@ class Eventlog(pd.DataFrame):
 			return df
 
 	@classmethod
-	def from_txt(cls, path,sep='\t'):
+	def from_txt(cls, path, sep='\t'):
 		df = pd.read_csv(path, sep = sep, index_col = False, dtype={'ROOT_LOT_ID':'str', 'WAFER_ID':'str', 'STEP_SEQ':'str', 'TKIN_TIME':'str', 'TKOUT_TIME':'str', 'EQP_ID':'str', 'EQP_MODEL_NAME':'str', 'PPID':'str', 'CHAMBER_ID':'str', 'UNIT_ID':'str', 'VALUE':'float'})
 		return Eventlog(df)
 
@@ -122,6 +122,7 @@ class Eventlog(pd.DataFrame):
 		else:
 			new_col = kwargs['old_col']
 		self[new_col] = self[old_col]
+		self._columns.append(new_col)
 		del self[old_col]
 		return self
 
@@ -422,6 +423,17 @@ class Eventlog(pd.DataFrame):
 			p.join()
 
 		return output
+
+	#Relation Dictionary(key : AfterActovoty,, value : PreActivity list)
+	def relation_dictionary(self, pre_col, aft_col):
+		relation_set = {}
+		aft_activity_list = self.get_col_values(pre_col)
+		for i in aft_activity_list:
+			relation_set[i] = []
+		for i in range(len(self)):
+			relation_set[self[aft_col][i]].append(self[pre_col][i])
+
+		return relation_set
 
 
 
