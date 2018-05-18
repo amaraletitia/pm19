@@ -47,8 +47,12 @@ class Eventlog(pd.DataFrame):
 			return df
 
 	@classmethod
-	def from_txt(cls, path, sep='\t'):
-		df = pd.read_csv(path, sep = sep, index_col = False, dtype={'ROOT_LOT_ID':'str', 'WAFER_ID':'str', 'STEP_SEQ':'str', 'TKIN_TIME':'str', 'TKOUT_TIME':'str', 'EQP_ID':'str', 'EQP_MODEL_NAME':'str', 'PPID':'str', 'CHAMBER_ID':'str', 'UNIT_ID':'str', 'VALUE':'float'})
+	def from_txt(cls, path, sep='\t', **kwargs):
+		if 'dtype' in kwargs:
+			dtype = kwargs['dtype']
+		else:
+			dtype = None
+		df = pd.read_csv(path, sep = sep, index_col = False, dtype=dtype)
 		return Eventlog(df)
 
 	"""
@@ -72,7 +76,6 @@ class Eventlog(pd.DataFrame):
 			#del self[arg]
 			count +=1
 		self._columns.append('CASE_ID')
-		print(self._columns)
 		return self
 
 	@timefn
@@ -86,7 +89,6 @@ class Eventlog(pd.DataFrame):
 			#del self[arg]
 			count +=1
 		self._columns.append('ACTIVITY')
-		print(self._columns)
 		return self
 
 	@timefn
@@ -160,9 +162,9 @@ class Eventlog(pd.DataFrame):
 		tmp = self.copy(deep=True)
 		for arg in args:
 			if count == 0:
-				self[col_name] = tmp[arg]
+				self[col_name] = tmp[arg].astype(str)
 			else:
-				self[col_name] += '/' + tmp[arg]
+				self[col_name] += '/' + tmp[arg].astype(str)
 			#del self[arg]
 			count +=1
 		return self

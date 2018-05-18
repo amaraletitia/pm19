@@ -20,12 +20,14 @@ class ChartVisualizer(object):
 
 		#p.vbar(x=cols[0], top=cols[1], width=0.5, source=source,line_color='white', fill_color=factor_cmap(cols[0], palette=Spectral11, factors=df.index))
 		TOOLS = "hover,save,pan,box_zoom,reset,wheel_zoom"
+		"""
 		if len(df[cols[0]]) < 20:
 			p = figure(x_range=list(df[cols[0]]), plot_height=500, tools = TOOLS, toolbar_location='below', title="Counts")
 			p.vbar(x=cols[0], top=cols[1], width=0.5, source=source, fill_color=factor_cmap(cols[0], palette=Spectral11, factors=list(df[cols[0]])))
-		else:
-			p = figure(x_range=list(df[cols[0]]), sizing_mode='stretch_both', tools = TOOLS, toolbar_location='below', title="Counts")
-			p.vbar(x=cols[0], top=cols[1], width=0.5, source=source)
+		"""
+		#else:
+		p = figure(x_range=list(df[cols[0]]), sizing_mode='stretch_both', tools = TOOLS, toolbar_location='below', title="Counts")
+		p.vbar(x=cols[0], top=cols[1], width=0.5, source=source)
 		if label == True:
 			labels = LabelSet(x=cols[0], text=cols[1], y_offset=8,
 	                  text_font_size="10pt", text_color="#000000",
