@@ -5,7 +5,6 @@ from multiprocessing import Process, Manager, Queue
 import math
 
 from PyProM.src.data.importing import Import
-from PyProM.src.data.xes_reader import XesReader
 
 import sys
 import os

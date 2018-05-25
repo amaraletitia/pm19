@@ -1,7 +1,6 @@
 import datetime
 import xml.etree.ElementTree as ET
 import collections
-#from Eventlog import Eventlog
 
 class XesReader(object):
 	"""docstring for XesReader"""
