@@ -63,6 +63,64 @@ class ChartVisualizer(object):
 
 		show(p)
 
+	def produce_line(self, df, sort_by=0, ascending=True, label=True):
+		if isinstance(df, dict):
+			df = pd.DataFrame(list(df.items()), columns=['x', 'count'])
+		cols = df.columns
+		df.sort_values(cols[sort_by], inplace=True, ascending=ascending)
+		df[cols[0]]=df[cols[0]].astype(str)
+		source = ColumnDataSource(df)
+
+
+		#p.vbar(x=cols[0], top=cols[1], width=0.5, source=source,line_color='white', fill_color=factor_cmap(cols[0], palette=Spectral11, factors=df.index))
+		TOOLS = "hover,save,pan,box_zoom,reset,wheel_zoom"
+		from bokeh.models import SingleIntervalTicker, LinearAxis
+		ticker = SingleIntervalTicker(interval=1)
+		yaxis = LinearAxis(ticker=ticker)
+		p = figure(x_range=list(df[cols[0]]), sizing_mode='stretch_both', tools = TOOLS, toolbar_location='below', title="Counts")
+		p.line(x=cols[0], y=cols[1], source=source, legend=df.name)
+
+
+		p.legend.orientation = "horizontal"
+		p.legend.location = "top_right"
+		show(p)
+
+	def produce_lines(self, dfs, sort_by=0, ascending=True, label=True, **kwargs):
+		def color_list_generator(dfs):
+		    interval = int(256/len(dfs))
+		    colors = [Viridis256[x] for x in range(255, 0, -interval)]
+		    # Create a map between treatment and color.
+		    return colors
+		TOOLS = "hover,save,pan,box_zoom,reset,wheel_zoom"
+
+		colors = color_list_generator(dfs)
+		for index, df in enumerate(dfs):
+			if isinstance(df, dict):
+				df = pd.DataFrame(list(df.items()), columns=['x', 'count'])
+			cols = df.columns
+			df.sort_values(cols[sort_by], inplace=True, ascending=ascending)
+			df[cols[0]]=df[cols[0]].astype(str)
+			source = ColumnDataSource(df)
+			if index==0:
+				p = figure(x_range=list(dfs[0][dfs[0].columns[0]]), sizing_mode='stretch_both', tools = TOOLS, toolbar_location='below', title="Counts")
+			p.line(x=cols[0], y=cols[1], source=source, legend=df.name, line_color=colors[index], line_alpha=0.8)
+		if 'departure' in kwargs  and 'arrival' in kwargs:
+			departure = kwargs['departure']
+			arrival = kwargs['arrival']
+
+			departure_time = departure['CompleteTime'].strftime("%d %H:%M")
+			arrival_time = arrival['StartTime'].strftime("%d %H:%M")
+
+			p.circle(x=[departure_time], y=[0], legend='departure', size=10, fill_color='red')
+			p.circle(x=[arrival_time], y=[0], legend='arrival', size=10, fill_color='blue')
+
+
+
+
+		p.legend.orientation = "horizontal"
+		p.legend.location = "top_right"
+		show(p)
+
 	def produce_dotted_chart(self,eventlog, x='TIMESTAMP', y = 'CASE_ID', _type = 'ACTIVITY', _time = 'actual'):
 		TOOLS = "pan,wheel_zoom,box_zoom,reset,save,box_select"
 		TOOLS = "pan,wheel_zoom,box_zoom,reset,save".split(',')

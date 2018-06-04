@@ -51,7 +51,11 @@ class Eventlog(pd.DataFrame):
 			dtype = kwargs['dtype']
 		else:
 			dtype = None
-		df = pd.read_csv(path, sep = sep, index_col = False, dtype=dtype)
+		if 'index_col' in kwargs:
+			index_col = kwargs['index_col']
+		else:
+			index_col=False
+		df = pd.read_csv(path, sep = sep, index_col = index_col, dtype=dtype)
 		return Eventlog(df)
 
 	"""
@@ -253,7 +257,9 @@ class Eventlog(pd.DataFrame):
 
 	#특정 col의 특정 value를 포함하는 row를 리턴
 	def get_col_value(self, col, value):
-		return self.loc[self[col]==value]
+		value_df = self.loc[self[col]==value]
+		value_df.name = value
+		return value_df
 
 	def change_col_value(self, col, old_val, new_val):
 		self.loc[self[col]==old_val, col] = new_val
