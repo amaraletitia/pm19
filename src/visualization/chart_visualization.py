@@ -88,7 +88,7 @@ class ChartVisualizer(object):
 	def produce_lines(self, dfs, sort_by=0, ascending=True, label=True, **kwargs):
 		def color_list_generator(dfs):
 		    interval = int(256/len(dfs))
-		    colors = [Viridis256[x] for x in range(255, 0, -interval)]
+		    colors = [Viridis256[x] for x in range(0, 256, interval)]
 		    # Create a map between treatment and color.
 		    return colors
 		TOOLS = "hover,save,pan,box_zoom,reset,wheel_zoom"

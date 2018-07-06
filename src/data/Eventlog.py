@@ -108,8 +108,9 @@ class Eventlog(pd.DataFrame):
 		return self
 
 	@timefn
-	def assign_timestamp(self, *args, name = 'TIMESTAMP', format = '%Y/%m/%d %H:%M:%S'):
-		self[name] = pd.to_datetime(self[args[0]], format=format)
+	def assign_timestamp(self, *args, name = 'TIMESTAMP', format = '%Y/%m/%d %H:%M:%S', errors='ignore'):
+		self[name] = pd.to_datetime(self[args[0]], format=format, errors=errors)
+		self.loc[pd.isna(self[name]),name] = '-'
 		self._columns.append(name)
 		return self
 
