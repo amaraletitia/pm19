@@ -1,4 +1,5 @@
 from PyProM.src.utility.util_profile import Util_Profile
+import copy
 
 class Util_Multiprocessing(object):
 	timefn = Util_Profile.timefn
@@ -15,7 +16,7 @@ class Util_Multiprocessing(object):
 	def join_dict(cls, output):
 		for i, matrix in enumerate(output):
 			if i == 0:
-				result = matrix
+				result = copy.deepcopy(matrix)
 			else:
 				keys = result.keys()
 				for ai in matrix.keys():

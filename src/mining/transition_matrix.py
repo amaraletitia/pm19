@@ -88,6 +88,10 @@ class TransitionMatrix(object):
 		output = eventlog.parallelize(self._annotate_transition_matrix, workers, transition_matrix,value,source_time, final_time)
 
 		transition_matrix = Util_Multiprocessing.join_dict(output)
+		#annotate 진행하게 되면 기존에 산출했던 count가 workers 수만큼 곱해지게 됨 따라서 이를 리셋할 필요가 있음
+		for ai in transition_matrix:
+			for aj in transition_matrix[ai]:
+				transition_matrix[ai][aj]['count'] = transition_matrix[ai][aj]['count']/workers
 		return transition_matrix
 
 	@timefn
@@ -138,17 +142,6 @@ class TransitionMatrix(object):
 						transition_matrix[ai_string][aj_string]['case'].append(caseid)
 				try:
 					if value == 'duration':
-						"""
-						horizon 2 이상일 때 고려하는 방법 고민
-						next_caseid = eventlog.get_caseid_by_index(index+2)
-						if caseid == next_caseid:
-							ak = deepcopy(aj)
-							if self.target == 'ACTIVITY':
-								ak.append(eventlog.get_activity_by_index(index+2))
-							elif self.target == 'RESOURCE':
-								ak.append(eventlog.get_resource_by_index(index+2))
-							ak_string = ak.to_string()
-						"""
 						if 'duration' not in transition_matrix[ai_string][aj_string]:
 							transition_matrix[ai_string][aj_string]['duration'] = []
 						if source_time == 'default':
@@ -158,6 +151,17 @@ class TransitionMatrix(object):
 						duration = divmod(duration.days * 86400 + duration.seconds, 86400)
 						duration = 24*duration[0] + duration[1]/3600
 						transition_matrix[ai_string][aj_string]['duration'].append(duration)
+					elif value== 'Cluster':
+						if 'Cluster' not in transition_matrix[ai_string][aj_string]:
+							transition_matrix[ai_string][aj_string]['Cluster'] = list()
+						cluster = eventlog.get_col_value_by_index('Cluster',index+1)
+						transition_matrix[ai_string][aj_string]['Cluster'].append(cluster)
+						"""
+						if cluster not in transition_matrix[ai_string][aj_string]['Cluster']:
+							transition_matrix[ai_string][aj_string]['Cluster'][cluster] = 1
+						else:
+							transition_matrix[ai_string][aj_string]['Cluster'][cluster] += 1
+						"""
 				except KeyError:
 					print(ai_string, aj_string)
 					break

@@ -1,11 +1,14 @@
-import pygraphviz as pgv
+#import graphviz
+import pydot
+import networkx as nx
 import numpy as np
-
+import matplotlib.pyplot as plt
+import matplotlib as mpl
 import sys
 import os
 #sys.path.append(os.path.abspath("../utility"))
 from PyProM.src.utility.util_profile import Util_Profile
-import networkx as nx
+#import networkx as nx
 
 timefn = Util_Profile.timefn
 
@@ -75,18 +78,19 @@ class FSM_Miner(object):
     }
     @timefn
     def _create_graph(self, transition_matrix, loop='default', **kwargs):
+        """
+        import pygraphviz as pgv
         if not pgv:  # pragma: no cover
             raise Exception('AGraph diagram requires pygraphviz')
-        fsm_graph = pgv.AGraph(**self.machine_attributes)
-        if 'analysis_result' not in kwargs:
-            print("add node")
-            self._add_nodes(fsm_graph,transition_matrix)
-            print("add edge")
-            if 'edge_threshold' not in kwargs:
-                self._add_edges(fsm_graph, transition_matrix,loop)
-            else:
-                self._add_edges(fsm_graph, transition_matrix, loop, edge_threshold=kwargs['edge_threshold'])
-        else:
+        #fsm_graph = pgv.AGraph(**self.machine_attributes)
+        """
+        fsm_graph = nx.DiGraph(**self.machine_attributes)
+
+        if 'edge_colors' in kwargs:
+            edge_colors = kwargs['edge_colors']
+
+
+        if 'analysis_result' in kwargs:
             analysis_result = kwargs['analysis_result']
             BG = kwargs['BG']
             WG = kwargs['WG']
@@ -96,31 +100,58 @@ class FSM_Miner(object):
             print("add annotated edge")
             self._add_high_low_edges(fsm_graph, transition_matrix, BG, WG)
 
+        elif 'chamber_info_dict' in kwargs:
+            chamber_info_dict = kwargs['chamber_info_dict']
+            self._add_valid_nodes(fsm_graph, transition_matrix, chamber_info_dict)
+            if 'edge_threshold' in kwargs:
+                edge_threshold = kwargs['edge_threshold']
+            else:
+                edge_threshold = False
+
+            if edge_threshold!=False:
+                self._add_valid_edges(fsm_graph, transition_matrix, chamber_info_dict, edge_threshold=edge_threshold, edge_colors=edge_colors)
+            else:
+                self._add_valid_edges(fsm_graph, transition_matrix, chamber_info_dict, edge_colors=edge_colors)
+
+        else:
+            print("add node")
+            self._add_nodes(fsm_graph,transition_matrix)
+            print("add edge")
+            if 'edge_threshold' not in kwargs:
+                self._add_edges(fsm_graph, transition_matrix,loop)
+            else:
+                self._add_edges(fsm_graph, transition_matrix, loop, edge_threshold=kwargs['edge_threshold'])
+
+
+
 
         print("unconnect")
         #remove unconnected nodes
         total_nodes = fsm_graph.nodes()
-        #print("total nodes: {}".format(total_nodes))
+        """
         outdeg = fsm_graph.out_degree()
-        #print(outdeg)
         indeg = fsm_graph.in_degree()
-        #print indeg nodes
-        """
-        for x in range(len(indeg)):
-            print(total_nodes[x])
-            print(indeg[x])
-        """
-        #print(indeg)
         zero_deg = [n for n in range(len(outdeg)) if (outdeg[n] == 0 or indeg[n] == 0)]
+        """
+        #zero_deg = ['']
+
+        outdeg = fsm_graph.out_degree()
+        indeg = fsm_graph.in_degree()
+        #zero_deg = [n for n in range(len(outdeg)) if (outdeg[n] == 0 or indeg[n] == 0)]
+        zero_outdeg = [node for node, deg in outdeg if deg==0]
+        zero_indeg = [node for node, deg in indeg if deg==0]
+        zero_deg = zero_outdeg + zero_indeg
         print("Remove nodes: {}".format(zero_deg))
         if 'start_end' not in kwargs:
             start_end = True
         else:
             start_end = kwargs['start_end']
 
-        while zero_deg:
-            candidate_nodes = [total_nodes[x] for x in zero_deg]
-            print("candidate nodes: {}".format(candidate_nodes))
+        if len(zero_deg)!=0:
+            #candidate_nodes = [total_nodes[x] for x in zero_deg]
+            candidate_nodes = zero_deg
+            print(candidate_nodes)
+            #print("candidate nodes: {}".format(candidate_nodes))
             if start_end == False:
                 fsm_graph.remove_nodes_from(candidate_nodes)
             else:
@@ -128,31 +159,14 @@ class FSM_Miner(object):
                     candidate_nodes.remove('START')
                 if 'END' in candidate_nodes:
                     candidate_nodes.remove('END')
-                fsm_graph.remove_node(candidate_nodes)
+                print("candidate nodes: {}".format(candidate_nodes))
+                if len(candidate_nodes) !=0:
+                    fsm_graph.remove_nodes_from(candidate_nodes)
 
-            #node가 삭제됨에따라 indegree/outdegree update 됨
-            total_nodes = fsm_graph.nodes()
-            indeg = fsm_graph.in_degree()
-            outdeg = fsm_graph.out_degree()
-            zero_deg = [n for n in range(len(outdeg)) if (outdeg[n] == 0 or indeg[n] == 0)]
-            print("remove nodes: {}".format(candidate_nodes))
-        """
-        for x in zero_deg:
-            print(total_nodes[x])
 
-                if total_nodes[x] not in ['START', 'END']:
-                    fsm_graph.remove_node(total_nodes[x])
-            else:
-                if kwargs['start_end'] == False:
-                    fsm_graph.remove_node(total_nodes[x])
-                else:
-                    if total_nodes[x] not in ['START', 'END']:
-                        fsm_graph.remove_node(total_nodes[x])
-
-        """
-        print("final nodes: {}".format(fsm_graph.nodes()))
-        print("final nodes: {}".format(fsm_graph.edges()))
-        setattr(fsm_graph, 'style_attributes', self.style_attributes)
+        #print("final nodes: {}".format(fsm_graph.nodes()))
+        #print("final nodes: {}".format(fsm_graph.edges()))
+        #setattr(fsm_graph, 'style_attributes', self.style_attributes)
         return fsm_graph
 
     @timefn
@@ -166,6 +180,48 @@ class FSM_Miner(object):
                 print("ignore {}".format(ai))
                 continue
             fsm_graph.add_node(ai, shape = shape, style = style, penwidth = penwidth, fontsize = fontsize)
+
+    def _add_valid_nodes(self, fsm_graph, transition_matrix, chamber_info_dict, **kwargs):
+        valids = [chamber for chamber in chamber_info_dict if chamber_info_dict[chamber]['valid']!=False]
+        dummies = [chamber for chamber in chamber_info_dict if chamber_info_dict[chamber]['valid']==False]
+        shape = self.style_attributes['node']['default']['shape']
+        style = self.style_attributes['node']['default']['style']
+        fontsize = self.style_attributes['node']['default']['fontsize']
+        penwidth = self.style_attributes['node']['default']['penwidth']
+
+        for ai in transition_matrix:
+            if ai == 'START' or ai == 'END':
+                print("ignore {}".format(ai))
+                continue
+            #simplification 하지않는 경우
+            if ai in dummies:
+                fillcolor = self.style_attributes['node']['DUMMY']['fillcolor']
+            elif ai in valids:
+                fillcolor = self.style_attributes['node']['HIGH']['fillcolor']
+            else:
+                pass
+                #print(ai)
+                #print("NO")
+            #simplification 하는 경우
+            if 'DM' in ai:
+                fillcolor = self.style_attributes['node']['DUMMY']['fillcolor']
+
+            #border color 설정 - BWS, BWD
+            """
+            if BWSs[ai] < 0.1:
+                color = self.style_attributes['node']['DUMMY']['color']
+            if BWDs[ai] > BOB_criterion:
+                color = self.style_attributes['node']['BOB']['color']
+            elif BWDs[ai] < WOW_criterion:
+                color = self.style_attributes['node']['WOW']['color']
+            else:
+                color = self.style_attributes['node']['DUMMY']['color']
+            """
+            color = self.style_attributes['node']['DUMMY']['color']
+
+
+            fsm_graph.add_node(ai, shape = shape, color = color, fillcolor = fillcolor, style = style, penwidth = penwidth, fontsize = fontsize)
+
 
     def _add_high_low_nodes(self, fsm_graph, transition_matrix, analysis_result, BOB_group, WOW_group):
         dummies = analysis_result.loc[analysis_result['LCresult'] == 'DUMMY', 'RESOURCE']
@@ -255,6 +311,89 @@ class FSM_Miner(object):
                     fsm_graph.add_edge(ai, aj, label=transition_matrix[ai][aj]['count'], penwidth = 15)
 
     @timefn
+    def _add_valid_edges(self, fsm_graph, transition_matrix, chamber_info_dict, edge_colors, **kwargs):
+        if 'edge_threshold' in kwargs:
+            edge_threshold = kwargs['edge_threshold']
+        else:
+            edge_threshold = False
+        penwidth = self.style_attributes['node']['default']['penwidth']
+        values = [transition_matrix[ai][aj]['count'] for ai in transition_matrix for aj in transition_matrix[ai]]
+
+        x_min = min(values)
+        x_max = max(values)
+        y_min = 1.0
+        y_max = 25.0
+
+        print(edge_colors)
+        num_colors = len(edge_colors)
+        for ai in transition_matrix:
+            for aj in transition_matrix[ai]:
+                edge_label = transition_matrix[ai][aj]['count']
+                edge_label = '                    {}                    '.format(edge_label)
+                if ai == 'START' or ai == 'END':
+                    #print("ignore {}".format(ai))
+                    color = self.style_attributes['edge']['default']['color']
+                    fsm_graph.add_edge(ai, aj, label=edge_label, color = color, penwidth = 15)
+                    continue
+                if transition_matrix[ai][aj]['count'] < 1:
+                    continue
+                x = transition_matrix[ai][aj]['count']
+                x = float(x)
+                y = y_min + (y_max-y_min) * float(x-x_min) / float(x_max-x_min)
+
+                thickness = 10
+                if 'DM' not in ai:
+                    color_index, thickness = self.assign_edge_color(transition_matrix, chamber_info_dict, ai, aj)
+                    color = edge_colors[color_index]
+                elif 'DM' in ai and 'DM' not in aj and 'END' not in aj:
+                    color_index, thickness = self.assign_edge_color(transition_matrix, chamber_info_dict, ai, aj, reverse=True)
+                    color = edge_colors[color_index]
+                else:
+                    color = self.style_attributes['edge']['DUMMY']['color']
+
+                """
+                if edge_threshold!=False:
+                    #더미간의 연결은 유지 (step 소실하지 않기 위해서)
+                    if 'DM' in ai and 'DM' in aj:
+                        fsm_graph.add_edge(ai, aj, label=transition_matrix[ai][aj]['count'], color = color, penwidth = thickness)
+                    else:
+                        if transition_matrix[ai][aj]['count'] > edge_threshold:
+                            fsm_graph.add_edge(ai, aj, label=transition_matrix[ai][aj]['count'], color = color, penwidth = thickness)
+                else:
+                """
+                fsm_graph.add_edge(ai, aj, label=edge_label, color = color, penwidth = thickness)
+
+
+    def assign_edge_color(self, transition_matrix, chamber_info_dict, ai, aj, **kwargs):
+        if 'reverse' in kwargs:
+            reverse = kwargs['reverse']
+        else:
+            reverse = False
+        if reverse == False:
+            valid_list = chamber_info_dict[ai]['valid']
+        else:
+            valid_list = chamber_info_dict[aj]['valid']
+
+
+        assigned_cluster = ''
+        keys = list(transition_matrix[ai][aj]['Cluster'].keys())
+        while assigned_cluster=='':
+            if len(keys) == 0:
+                color_index = -1
+                thickness = 10
+                return color_index, thickness
+            cand_cluster = max(keys, key=(lambda key: transition_matrix[ai][aj]['Cluster'][key]))
+            if cand_cluster in valid_list:
+                assigned_cluster = cand_cluster
+            else:
+                keys.remove(cand_cluster)
+        thickness = 35
+        return int(assigned_cluster), thickness
+
+
+
+
+    @timefn
     def _add_high_low_edges(self, fsm_graph, transition_matrix, BOB_group, WOW_group):
         penwidth = self.style_attributes['node']['default']['penwidth']
         #arc thickness
@@ -328,11 +467,25 @@ class FSM_Miner(object):
         return self.fsm_graph
 
     def _create_dot(self,fsm_graph):
-        fsm_graph_dot = fsm_graph.draw('../result/state_svg.svg', format ='svg', prog='dot')
+        #fsm_graph_dot = fsm_graph.draw('../result/state_svg.svg', format ='svg', prog='dot')
+        #import matplotlib.pyplot as plt
+        #pos = nx.nx_pydot.graphviz_layout(fsm_graph, prog='dot')
+        #nx.draw(fsm_graph, pos=pos)
+        #plt.savefig('../result/state_svg.svg', format ='svg')
+        #nx.drawing.nx_agraph.write_dot(fsm_graph, '../result/state.dot')
+        nx.nx_pydot.write_dot(fsm_graph, '../result/state.dot')
+        #os.system('dot -Tsvg state.dot -o state_svg.svg')
+        #graphviz.render('dot', 'svg', '../result/state.dot')
+        dot_graph = pydot.graph_from_dot_file('../result/state.dot')[0]
+        dot_graph.set_rankdir('LR')
+        #dot_graph.set_labelfontsize(10)
+        dot_graph.write_svg('../result/state.dot.svg')
+        #dot.render('test-output/round-table.gv', view=True)
 
     def get_dot(self,fsm_graph):
-        fsm_graph_dot = self._create_dot(fsm_graph)
-        return fsm_graph_dot
+        self._create_dot(fsm_graph)
+        #fsm_graph_dot = self._create_dot(fsm_graph)
+        #return fsm_graph_dot
 
     @timefn
     def get_graph_info(self,fsm_graph):
