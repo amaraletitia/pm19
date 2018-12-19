@@ -232,6 +232,10 @@ class Eventlog(pd.DataFrame):
 		unique_activities = self['ACTIVITY'].unique()
 		return unique_activities
 
+	def get_resources(self):
+		unique_resources = self['RESOURCE'].unique()
+		return unique_resources
+
 	def get_timestamps(self):
 		unique_timestamps = self['TIMESTAMP'].unique()
 		return unique_timestamps
