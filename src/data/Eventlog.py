@@ -73,9 +73,9 @@ class Eventlog(pd.DataFrame):
 		count = 0
 		for arg in args:
 			if count == 0:
-				self['CASE_ID'] = self[arg]
+				self['CASE_ID'] = self[arg].apply(str)
 			else:
-				self['CASE_ID'] += '_' + self[arg]
+				self['CASE_ID'] += '_' + self[arg].apply(str)
 			#del self[arg]
 			count +=1
 		self._columns.append('CASE_ID')
@@ -86,12 +86,12 @@ class Eventlog(pd.DataFrame):
 		count = 0
 		for arg in args:
 			if count == 0:
-				self['ACTIVITY'] = self[arg]
+				self['Activity'] = self[arg].apply(str)
 			else:
-				self['ACTIVITY'] += '_' + self[arg]
+				self['Activity'] += '_' + self[arg].apply(str)
 			#del self[arg]
 			count +=1
-		self._columns.append('ACTIVITY')
+		self._columns.append('Activity')
 		return self
 
 	@timefn
@@ -99,12 +99,12 @@ class Eventlog(pd.DataFrame):
 		count = 0
 		for arg in args:
 			if count == 0:
-				self['RESOURCE'] = self[arg]
+				self['Resource'] = self[arg].astype(str)
 			else:
-				self['RESOURCE'] += '_' + self[arg]
+				self['Resource'] += '_' + self[arg].astype(str)
 			#del self[arg]
 			count +=1
-		self._columns.append('RESOURCE')
+		self._columns.append('Resource')
 		return self
 
 	@timefn
@@ -178,19 +178,19 @@ class Eventlog(pd.DataFrame):
 	"""
 	utility functions
 	"""
-	def get_event_trace(self, workers, value = 'ACTIVITY'):
+	def get_event_trace(self, workers, value = 'Activity'):
 		output = self.parallelize(self._get_event_trace, workers, value)
 		event_trace = Util_Multiprocessing.join_dict(output)
 		return event_trace
 
-	def _get_event_trace(self, eventlog, x, value='ACTIVITY'):
+	def _get_event_trace(self, eventlog, x, value='Activity'):
 		event_trace = dict()
 		count = 0
 		for instance in eventlog.itertuples():
 			index = instance.Index
-			if value == 'ACTIVITY':
+			if value == 'Activity':
 				ai = eventlog.get_activity_by_index(index)
-			elif value == 'RESOURCE':
+			elif value == 'Resource':
 				ai = eventlog.get_resource_by_index(index)
 			elif value == 'TIMESTAMP':
 				ai = eventlog.get_timestamp_by_index(index)
@@ -229,11 +229,11 @@ class Eventlog(pd.DataFrame):
 		return unique_caseids
 
 	def get_activities(self):
-		unique_activities = self['ACTIVITY'].unique()
+		unique_activities = self['Activity'].unique()
 		return unique_activities
 
 	def get_resources(self):
-		unique_resources = self['RESOURCE'].unique()
+		unique_resources = self['Resource'].unique()
 		return unique_resources
 
 	def get_timestamps(self):
@@ -251,10 +251,10 @@ class Eventlog(pd.DataFrame):
 		return self['CASE_ID'][index]
 
 	def get_resource_by_index(self, index):
-		return self['RESOURCE'][index]
+		return self['Resource'][index]
 
 	def get_activity_by_index(self, index):
-		return self['ACTIVITY'][index]
+		return self['Activity'][index]
 
 	def get_timestamp_by_index(self, index):
 		return self['TIMESTAMP'][index]
@@ -336,14 +336,14 @@ class Eventlog(pd.DataFrame):
 		e.g. 1번 중복: 100, 2번 중복: 300
 
 		Keyword arguments:
-		col -- 특정 col이 중복된 것을 확인하고 싶은 경우 (default: ACTIVITY)
+		col -- 특정 col이 중복된 것을 확인하고 싶은 경우 (default: Activity)
 
 		"""
 		if 'col' in kwargs:
 			col = kwargs['col']
 			traces = eventlog.get_event_trace(workers=4, value=col)
 		else:
-			traces = eventlog.get_event_trace(workers=4, value='ACTIVITY')
+			traces = eventlog.get_event_trace(workers=4, value='Activity')
 		count=0
 		inv_act_counts = []
 		for t in traces:
@@ -374,14 +374,14 @@ class Eventlog(pd.DataFrame):
 		"""step이 연속된 경우를 count함. Step1-->Step1인 경우 1, Step1-->Step1-->Step1인 경우 2, 동시에 동일 device에서 수행되었는지도 계산함
 
 		Keyword arguments:
-		col -- 특정 col이 중복된 것을 확인하고 싶은 경우 (default: ACTIVITY)
+		col -- 특정 col이 중복된 것을 확인하고 싶은 경우 (default: Activity)
 		value -- 특정 값이 연속된 것을 확인하고 싶은 경우 e.g. 'Null'
 		"""
 		if 'col' in kwargs:
 			col = kwargs['col']
 			traces = eventlog.get_event_trace(workers=4, value=col)
 		else:
-			traces = eventlog.get_event_trace(workers=4, value='ACTIVITY')
+			traces = eventlog.get_event_trace(workers=4, value='Activity')
 		count=0
 		if 'value' in kwargs:
 			value = kwargs['value']
@@ -403,8 +403,8 @@ class Eventlog(pd.DataFrame):
 	def describe(self):
 		print("# events: {}".format(len(self)))
 		print("# cases: {}".format(len(set(self['CASE_ID']))))
-		print("# activities: {}".format(len(set(self['ACTIVITY']))))
-		print("# resources: {}".format(len(set(self['RESOURCE']))))
+		print("# activities: {}".format(len(set(self['Activity']))))
+		print("# resources: {}".format(len(set(self['Resource']))))
 		try:
 			print("average yield: {}".format(np.mean(self['VALUE'])))
 		except AttributeError:
