@@ -46,7 +46,7 @@ class Eventlog(pd.DataFrame):
 			return df
 
 	@classmethod
-	def from_txt(cls, path, sep='\t', **kwargs):
+	def from_txt(cls, path, sep='\t', encoding=None, **kwargs):
 		if 'dtype' in kwargs:
 			dtype = kwargs['dtype']
 		else:
@@ -55,7 +55,7 @@ class Eventlog(pd.DataFrame):
 			index_col = kwargs['index_col']
 		else:
 			index_col=False
-		df = pd.read_csv(path, sep = sep, index_col = index_col, dtype=dtype)
+		df = pd.read_csv(path, sep = sep, index_col = index_col, dtype=dtype, encoding=encoding)
 		return Eventlog(df)
 
 	"""

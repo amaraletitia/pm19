@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt5 import QtSvg,QtCore,QtGui,Qt,QtWidgets
+from PySide2 import QtSvg,QtCore,QtGui,Qt,QtWidgets
 import sys, signal, os
 from argparse import ArgumentParser
 from random import uniform
@@ -57,7 +57,7 @@ QSlider > QSplitter::handle:pressed {
 
 
 class SvgWidget(QtSvg.QSvgWidget):
-    location_changed = QtCore.pyqtSignal(QtCore.QPointF)
+    location_changed = QtCore.Signal(QtCore.QPointF)
 
     def updateViewBox(self, size):
         w = self.scale * size.width()
@@ -144,7 +144,7 @@ def tr(s):
     return QtWidgets.QApplication.translate("SvgViewer", s, None, QtWidgets.QApplication.UnicodeUTF8)
 
 class Visualization(QtWidgets.QMainWindow):
-    closed = QtCore.pyqtSignal()
+    closed = QtCore.Signal()
     def showLocation(self, point):
         self.statusbar.showMessage("%f %f"%(point.x(), point.y()))
 
@@ -211,14 +211,10 @@ class Visualization(QtWidgets.QMainWindow):
         self.actionClose = QtWidgets.QAction(self)
         self.actionClose.setShortcuts(QtGui.QKeySequence.Close)
         self.actionCenter = QtWidgets.QAction(self)
-        self.actionCenter.setShortcuts(QtGui.QKeySequence("Space"));
         self.actionReload = QtWidgets.QAction(self)
-        self.actionReload.setShortcuts(QtGui.QKeySequence("F5"));
 
         self.actionNext = QtWidgets.QAction(self)
-        self.actionNext.setShortcuts(QtGui.QKeySequence("Page Down"));
         self.actionPrev = QtWidgets.QAction(self)
-        self.actionPrev.setShortcuts(QtGui.QKeySequence("Page Up"));
 
         self.menuFile.addAction(self.actionOpen)
         self.menuFile.addSeparator()

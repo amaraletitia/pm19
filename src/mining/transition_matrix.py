@@ -26,7 +26,7 @@ class TransitionMatrix(object):
 	def __init__(self):
 		super(TransitionMatrix, self).__init__()
 
-	def get_transition_matrix(self, eventlog, workers, type='sequence', horizon=1, target = 'ACTIVITY'):
+	def get_transition_matrix(self, eventlog, workers, type='sequence', horizon=1, target = 'Activity'):
 		self.type = type
 		self.horizon = horizon
 		self.target = target
@@ -40,7 +40,7 @@ class TransitionMatrix(object):
 
 
 	@timefn
-	def _produce_transition_matrix(self, eventlog, x, type = 'sequence', horizon = 1, target='ACTIVITY'):
+	def _produce_transition_matrix(self, eventlog, x, type = 'sequence', horizon = 1, target='Activity'):
 		print("produce transition matrix")
 		transition_matrix = dict()
 		transition_matrix['START'] = dict()
@@ -116,7 +116,7 @@ class TransitionMatrix(object):
 					ai = Abs_set(self.horizon)
 				ai.append('START')
 				aj = deepcopy(ai)
-				if self.target == 'ACTIVITY':
+				if self.target == 'Activity':
 					aj.append(eventlog.get_activity_by_index(index))
 				elif self.target == 'RESOURCE':
 					aj.append(eventlog.get_resource_by_index(index))
@@ -126,7 +126,7 @@ class TransitionMatrix(object):
 				if index == eventlog.count_event() - 2:
 					break
 				ai = deepcopy(aj)
-				if self.target == 'ACTIVITY':
+				if self.target == 'Activity':
 					aj.append(eventlog.get_activity_by_index(index+1))
 				elif self.target == 'RESOURCE':
 					aj.append(eventlog.get_resource_by_index(index+1))
@@ -162,6 +162,14 @@ class TransitionMatrix(object):
 						else:
 							transition_matrix[ai_string][aj_string]['Cluster'][cluster] += 1
 						"""
+					elif value == 'duration_list':
+						if 'duration_list' not in transition_matrix[ai_string][aj_string]:
+							transition_matrix[ai_string][aj_string]['duration_list'] = list()
+						duration = eventlog.get_timestamp_by_index(index+1) - eventlog.get_timestamp_by_index(index)
+						if type(duration)==int:
+							print(duration)
+							continue
+						transition_matrix[ai_string][aj_string]['duration_list'].append(duration)
 				except KeyError:
 					print(ai_string, aj_string)
 					break

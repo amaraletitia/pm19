@@ -77,7 +77,7 @@ class FSM_Miner(object):
         }
     }
     @timefn
-    def _create_graph(self, transition_matrix, loop='default', **kwargs):
+    def _create_graph(self, transition_matrix, **kwargs):
         """
         import pygraphviz as pgv
         if not pgv:  # pragma: no cover
@@ -88,6 +88,26 @@ class FSM_Miner(object):
 
         if 'edge_colors' in kwargs:
             edge_colors = kwargs['edge_colors']
+
+        if 'edge_threshold' in kwargs:
+            edge_threshold = kwargs['edge_threshold']
+        else:
+            edge_threshold = 0
+
+        if 'penwidth' in kwargs:
+            penwidth = kwargs['penwidth']
+        else:
+            penwidth = 15
+
+        if 'label' in kwargs:
+            label = kwargs['label']
+        else:
+            label = 'count'
+
+        if 'colormap' in kwargs:
+            colormap = kwargs['colormap']
+        else:
+            colormap = None
 
 
         if 'analysis_result' in kwargs:
@@ -117,10 +137,8 @@ class FSM_Miner(object):
             print("add node")
             self._add_nodes(fsm_graph,transition_matrix)
             print("add edge")
-            if 'edge_threshold' not in kwargs:
-                self._add_edges(fsm_graph, transition_matrix,loop)
-            else:
-                self._add_edges(fsm_graph, transition_matrix, loop, edge_threshold=kwargs['edge_threshold'])
+            self._add_edges(fsm_graph, transition_matrix, label=label, edge_threshold=edge_threshold, penwidth=penwidth, colormap=colormap)
+
 
 
 
@@ -281,34 +299,53 @@ class FSM_Miner(object):
 
             fsm_graph.add_node(ai, shape = shape, color = color, fillcolor = fillcolor, style = style, penwidth = penwidth, fontsize = fontsize)
 
+
     @timefn
-    def _add_edges(self, fsm_graph, transition_matrix, loop='default', edge_threshold='default'):
-        penwidth = self.style_attributes['node']['default']['penwidth']
+    def _add_edges(self, fsm_graph, transition_matrix, label='count', edge_threshold=0, penwidth=15, colormap=None):
+        #penwidth = self.style_attributes['node']['default']['penwidth']
         #arc thickness
-        values = [transition_matrix[ai][aj]['count'] for ai in transition_matrix for aj in transition_matrix[ai]]
+        values = [transition_matrix[ai][aj][label] for ai in transition_matrix for aj in transition_matrix[ai]]
         x_min = min(values)
         x_max = max(values)
 
-        y_min = 1.0
-        y_max = 5.0
+        y_min = 5.0
+        y_max = 20.0
+
+        def convert_to_hex(rgba_color):
+            red = int(rgba_color[0]*255)
+            green = int(rgba_color[1]*255)
+            blue = int(rgba_color[2]*255)
+            return '#%02x%02x%02x' % (red, green, blue)
+
+        if colormap != None:
+            cmap = plt.get_cmap(colormap)
+
+            thick_x_min = int(x_min)
+            thick_x_max = int(x_max)
+
+            thick_y_min = 160.0
+            thick_y_max = 230.0
 
         for ai in transition_matrix:
             for aj in transition_matrix[ai]:
                 if ai == aj:
                     continue
                 if ai == 'START' or ai == 'END':
-                    fsm_graph.add_edge(ai, aj, label=transition_matrix[ai][aj]['count'], penwidth = 15)
+                    fsm_graph.add_edge(ai, aj, label=transition_matrix[ai][aj][label], penwidth = 15)
                     continue
-                if transition_matrix[ai][aj]['count'] < 1:
-                    continue
-                x = transition_matrix[ai][aj]['count']
+                x = transition_matrix[ai][aj][label]
                 x = float(x)
                 y = y_min + (y_max-y_min) * float(x-x_min) / float(x_max-x_min)
-                if edge_threshold != 'default':
-                    if transition_matrix[ai][aj]['count'] > edge_threshold:
-                        fsm_graph.add_edge(ai, aj, label=transition_matrix[ai][aj]['count'], penwidth = 15)
+                if colormap !=None:
+                    thick_y = thick_y_min + (thick_y_max-thick_y_min) * float(x-x_min) / float(x_max-x_min)
+                    rgba = cmap(int(thick_y))
+                    color = convert_to_hex(rgba)
+
                 else:
-                    fsm_graph.add_edge(ai, aj, label=transition_matrix[ai][aj]['count'], penwidth = 15)
+                    color = 'gray'
+
+                if transition_matrix[ai][aj]['count'] > edge_threshold:
+                    fsm_graph.add_edge(ai, aj, label=transition_matrix[ai][aj][label], penwidth = y, color=color)
 
     @timefn
     def _add_valid_edges(self, fsm_graph, transition_matrix, chamber_info_dict, edge_colors, **kwargs):
@@ -466,7 +503,7 @@ class FSM_Miner(object):
     def get_fsm(self):
         return self.fsm_graph
 
-    def _create_dot(self,fsm_graph):
+    def _create_dot(self,fsm_graph, svg_filename):
         #fsm_graph_dot = fsm_graph.draw('../result/state_svg.svg', format ='svg', prog='dot')
         #import matplotlib.pyplot as plt
         #pos = nx.nx_pydot.graphviz_layout(fsm_graph, prog='dot')
@@ -479,11 +516,11 @@ class FSM_Miner(object):
         dot_graph = pydot.graph_from_dot_file('../result/state.dot')[0]
         dot_graph.set_rankdir('LR')
         #dot_graph.set_labelfontsize(10)
-        dot_graph.write_svg('../result/state.dot.svg')
+        dot_graph.write_png('../result/{}.png'.format(svg_filename))
         #dot.render('test-output/round-table.gv', view=True)
 
-    def get_dot(self,fsm_graph):
-        self._create_dot(fsm_graph)
+    def get_dot(self,fsm_graph, svg_filename='transition_system'):
+        self._create_dot(fsm_graph, svg_filename=svg_filename)
         #fsm_graph_dot = self._create_dot(fsm_graph)
         #return fsm_graph_dot
 
