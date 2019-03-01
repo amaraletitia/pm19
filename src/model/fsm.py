@@ -109,6 +109,11 @@ class FSM_Miner(object):
         else:
             colormap = None
 
+        if 'dashed' in kwargs:
+            dashed = kwargs['dashed']
+        else:
+            dashed = False
+
 
         if 'analysis_result' in kwargs:
             analysis_result = kwargs['analysis_result']
@@ -137,7 +142,7 @@ class FSM_Miner(object):
             print("add node")
             self._add_nodes(fsm_graph,transition_matrix)
             print("add edge")
-            self._add_edges(fsm_graph, transition_matrix, label=label, edge_threshold=edge_threshold, penwidth=penwidth, colormap=colormap)
+            self._add_edges(fsm_graph, transition_matrix, label=label, edge_threshold=edge_threshold, penwidth=penwidth, colormap=colormap, dashed=dashed)
 
 
 
@@ -301,7 +306,7 @@ class FSM_Miner(object):
 
 
     @timefn
-    def _add_edges(self, fsm_graph, transition_matrix, label='count', edge_threshold=0, penwidth=15, colormap=None):
+    def _add_edges(self, fsm_graph, transition_matrix, label='count', edge_threshold=0, penwidth=15, colormap=None, dashed=False):
         #penwidth = self.style_attributes['node']['default']['penwidth']
         #arc thickness
         values = [transition_matrix[ai][aj][label] for ai in transition_matrix for aj in transition_matrix[ai]]
@@ -345,7 +350,11 @@ class FSM_Miner(object):
                     color = 'gray'
 
                 if transition_matrix[ai][aj]['count'] > edge_threshold:
-                    fsm_graph.add_edge(ai, aj, label=transition_matrix[ai][aj][label], penwidth = y, color=color)
+                    if dashed!=False:
+                        style = 'dashed' if transition_matrix[ai][aj][label]==0 else 'solid'
+                    else:
+                        style = 'solid'
+                    fsm_graph.add_edge(ai, aj, label=transition_matrix[ai][aj][label], penwidth = y, color=color, style=style)
 
     @timefn
     def _add_valid_edges(self, fsm_graph, transition_matrix, chamber_info_dict, edge_colors, **kwargs):

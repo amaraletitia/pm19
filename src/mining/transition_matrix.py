@@ -94,6 +94,14 @@ class TransitionMatrix(object):
 				transition_matrix[ai][aj]['count'] = transition_matrix[ai][aj]['count']/workers
 		return transition_matrix
 
+	def clear_annotation(self, transition_matrix):
+		temp_tm = deepcopy(transition_matrix)
+		for ai in temp_tm:
+			for aj in temp_tm[ai]:
+				for key in temp_tm[ai][aj].keys():
+					temp_tm[ai][aj][key] = None
+		return temp_tm
+
 	@timefn
 	def _annotate_transition_matrix(self, eventlog, x, transition_matrix, value='duration', source_time='default', final_time='default'):
 		print("produce annotated transition matrix")
