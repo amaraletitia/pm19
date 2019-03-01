@@ -26,10 +26,11 @@ class TransitionMatrix(object):
 	def __init__(self):
 		super(TransitionMatrix, self).__init__()
 
-	def get_transition_matrix(self, eventlog, workers, type='sequence', horizon=1, target = 'Activity'):
-		self.type = type
+	def get_transition_matrix(self, eventlog, workers, abs_type='sequence', horizon=1, target = 'Activity', name='transition_matrix'):
+		self.type = abs_type
 		self.horizon = horizon
 		self.target = target
+		self.name = name
 
 		output = eventlog.parallelize(self._produce_transition_matrix, workers, self.type, self.horizon, target)
 
