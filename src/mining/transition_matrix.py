@@ -43,8 +43,8 @@ class TransitionMatrix(object):
 	@timefn
 	def _produce_transition_matrix(self, eventlog, x, type = 'sequence', horizon = 1, target='Activity'):
 		print("produce transition matrix")
-		transition_matrix = dict()
-		transition_matrix['START'] = dict()
+		transition_matrix = collections.OrderedDict()
+		transition_matrix['START'] = collections.OrderedDict()
 
 		event_trace = eventlog.get_event_trace(1, target)
 		for trace in event_trace.values():
@@ -63,7 +63,7 @@ class TransitionMatrix(object):
 				ai_string = ai.to_string()
 				aj_string = aj.to_string()
 				if ai_string not in transition_matrix:
-					transition_matrix[ai_string] = dict()
+					transition_matrix[ai_string] = collections.OrderedDict()
 				if aj_string not in transition_matrix[ai_string]:
 					transition_matrix[ai_string][aj_string] = collections.defaultdict(list)
 					transition_matrix[ai_string][aj_string]['count'] = 0
@@ -75,7 +75,7 @@ class TransitionMatrix(object):
 					ai_string = ai.to_string()
 					aj_string = 'END'
 					if ai_string not in transition_matrix:
-						transition_matrix[ai_string] = dict()
+						transition_matrix[ai_string] = collections.OrderedDict()
 					if aj_string not in transition_matrix[ai_string]:
 						transition_matrix[ai_string][aj_string] = collections.defaultdict(list)
 						transition_matrix[ai_string][aj_string]['count'] = 0
@@ -95,12 +95,11 @@ class TransitionMatrix(object):
 				transition_matrix[ai][aj]['count'] = transition_matrix[ai][aj]['count']/workers
 		return transition_matrix
 
-	def clear_annotation(self, transition_matrix):
+	def clear_annotation(self, transition_matrix, label):
 		temp_tm = deepcopy(transition_matrix)
 		for ai in temp_tm:
 			for aj in temp_tm[ai]:
-				for key in temp_tm[ai][aj].keys():
-					temp_tm[ai][aj][key] = None
+				temp_tm[ai][aj][label] = 0
 		return temp_tm
 
 	@timefn
@@ -158,7 +157,7 @@ class TransitionMatrix(object):
 						else:
 							duration = eventlog.get_col_value_by_index(source_time,index+1) - eventlog.get_col_value_by_index(final_time, index+1)
 						duration = divmod(duration.days * 86400 + duration.seconds, 86400)
-						duration = 24*duration[0] + duration[1]/3600
+						duration = 24*60*duration[0] + duration[1]/60
 						transition_matrix[ai_string][aj_string]['duration'].append(duration)
 					elif value== 'Cluster':
 						if 'Cluster' not in transition_matrix[ai_string][aj_string]:
