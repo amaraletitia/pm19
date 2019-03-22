@@ -45,6 +45,7 @@ class TransitionMatrix(object):
 		print("produce transition matrix")
 		transition_matrix = collections.OrderedDict()
 		transition_matrix['START'] = collections.OrderedDict()
+		transition_matrix['START']['outgoings'] = collections.OrderedDict()
 
 		event_trace = eventlog.get_event_trace(1, target)
 		for trace in event_trace.values():
@@ -64,10 +65,11 @@ class TransitionMatrix(object):
 				aj_string = aj.to_string()
 				if ai_string not in transition_matrix:
 					transition_matrix[ai_string] = collections.OrderedDict()
-				if aj_string not in transition_matrix[ai_string]:
-					transition_matrix[ai_string][aj_string] = collections.defaultdict(list)
-					transition_matrix[ai_string][aj_string]['count'] = 0
-				transition_matrix[ai_string][aj_string]['count'] += 1
+					transition_matrix[ai_string]['outgoings'] = collections.OrderedDict()
+				if aj_string not in transition_matrix[ai_string]['outgoings']:
+					transition_matrix[ai_string]['outgoings'][aj_string] = collections.defaultdict(list)
+					transition_matrix[ai_string]['outgoings'][aj_string]['count'] = 0
+				transition_matrix[ai_string]['outgoings'][aj_string]['count'] += 1
 				count = 1
 				#add 'END'
 				if index == len(trace) - 1:
@@ -76,10 +78,11 @@ class TransitionMatrix(object):
 					aj_string = 'END'
 					if ai_string not in transition_matrix:
 						transition_matrix[ai_string] = collections.OrderedDict()
-					if aj_string not in transition_matrix[ai_string]:
-						transition_matrix[ai_string][aj_string] = collections.defaultdict(list)
-						transition_matrix[ai_string][aj_string]['count'] = 0
-					transition_matrix[ai_string][aj_string]['count'] += 1
+						transition_matrix[ai_string]['outgoings'] = collections.OrderedDict()
+					if aj_string not in transition_matrix[ai_string]['outgoings']:
+						transition_matrix[ai_string]['outgoings'][aj_string] = collections.defaultdict(list)
+						transition_matrix[ai_string]['outgoings'][aj_string]['count'] = 0
+					transition_matrix[ai_string]['outgoings'][aj_string]['count'] += 1
 
 		print("Finish")
 		x.append(transition_matrix)
@@ -91,15 +94,16 @@ class TransitionMatrix(object):
 		transition_matrix = Util_Multiprocessing.join_dict(output)
 		#annotate 진행하게 되면 기존에 산출했던 count가 workers 수만큼 곱해지게 됨 따라서 이를 리셋할 필요가 있음
 		for ai in transition_matrix:
-			for aj in transition_matrix[ai]:
-				transition_matrix[ai][aj]['count'] = transition_matrix[ai][aj]['count']/workers
+			for aj in transition_matrix[ai]['outgoings']:
+				transition_matrix[ai]['outgoings'][aj]['count'] = transition_matrix[ai]['outgoings'][aj]['count']/workers
 		return transition_matrix
 
 	def clear_annotation(self, transition_matrix, label):
 		temp_tm = deepcopy(transition_matrix)
 		for ai in temp_tm:
-			for aj in temp_tm[ai]:
-				temp_tm[ai][aj][label] = 0
+			temp_tm[ai][label] = 0
+			for aj in temp_tm[ai]['outgoings']:
+				temp_tm[ai]['outgoings'][aj][label] = 0
 		return temp_tm
 
 	@timefn
@@ -143,41 +147,47 @@ class TransitionMatrix(object):
 				aj_string = aj.to_string()
 
 				if value == 'CASE_ID':
-					if 'case' not in transition_matrix[ai_string][aj_string]:
-						transition_matrix[ai_string][aj_string]['case'] = []
+					if 'case' not in transition_matrix[ai_string]['outgoings'][aj_string]:
+						transition_matrix[ai_string]['outgoings'][aj_string]['case'] = []
 
-					if caseid not in transition_matrix[ai_string][aj_string]['case']:
-						transition_matrix[ai_string][aj_string]['case'].append(caseid)
+					if caseid not in transition_matrix[ai_string]['outgoings'][aj_string]['case']:
+						transition_matrix[ai_string]['outgoings'][aj_string]['case'].append(caseid)
 				try:
 					if value == 'duration':
-						if 'duration' not in transition_matrix[ai_string][aj_string]:
-							transition_matrix[ai_string][aj_string]['duration'] = []
+						if 'duration' not in transition_matrix[ai_string]:
+							transition_matrix[aj_string]['duration'] = list()
+						if 'duration' not in transition_matrix[ai_string]['outgoings'][aj_string]:
+							transition_matrix[ai_string]['outgoings'][aj_string]['duration'] = list()
 						if source_time == 'default':
 							duration = eventlog.get_timestamp_by_index(index+1) - eventlog.get_timestamp_by_index(index)
 						else:
 							duration = eventlog.get_col_value_by_index(source_time,index+1) - eventlog.get_col_value_by_index(final_time, index+1)
 						duration = divmod(duration.days * 86400 + duration.seconds, 86400)
 						duration = 24*60*duration[0] + duration[1]/60
-						transition_matrix[ai_string][aj_string]['duration'].append(duration)
+						transition_matrix[aj_string]['duration'].append(duration)
+						transition_matrix[ai_string]['outgoings'][aj_string]['duration'].append(duration)
 					elif value== 'Cluster':
-						if 'Cluster' not in transition_matrix[ai_string][aj_string]:
-							transition_matrix[ai_string][aj_string]['Cluster'] = list()
+						if 'Cluster' not in transition_matrix[ai_string]['outgoings'][aj_string]:
+							transition_matrix[ai_string]['outgoings'][aj_string]['Cluster'] = list()
 						cluster = eventlog.get_col_value_by_index('Cluster',index+1)
-						transition_matrix[ai_string][aj_string]['Cluster'].append(cluster)
+						transition_matrix[ai_string]['outgoings'][aj_string]['Cluster'].append(cluster)
 						"""
-						if cluster not in transition_matrix[ai_string][aj_string]['Cluster']:
-							transition_matrix[ai_string][aj_string]['Cluster'][cluster] = 1
+						if cluster not in transition_matrix[ai_string]['outgoings'][aj_string]['Cluster']:
+							transition_matrix[ai_string]['outgoings'][aj_string]['Cluster'][cluster] = 1
 						else:
-							transition_matrix[ai_string][aj_string]['Cluster'][cluster] += 1
+							transition_matrix[ai_string]['outgoings'][aj_string]['Cluster'][cluster] += 1
 						"""
 					elif value == 'duration_list':
-						if 'duration_list' not in transition_matrix[ai_string][aj_string]:
-							transition_matrix[ai_string][aj_string]['duration_list'] = list()
+						if 'duration_list' not in transition_matrix[aj_string]:
+							transition_matrix[aj_string]['duration_list'] = list()
+						if 'duration_list' not in transition_matrix[ai_string]['outgoings'][aj_string]:
+							transition_matrix[ai_string]['outgoings'][aj_string]['duration_list'] = list()
 						duration = eventlog.get_timestamp_by_index(index+1) - eventlog.get_timestamp_by_index(index)
 						if type(duration)==int:
 							print(duration)
 							continue
-						transition_matrix[ai_string][aj_string]['duration_list'].append(duration)
+						transition_matrix[aj_string]['duration_list'].append(duration)
+						transition_matrix[ai_string]['outgoings'][aj_string]['duration_list'].append(duration)
 				except KeyError:
 					print(ai_string, aj_string)
 					break
@@ -195,11 +205,11 @@ class TransitionMatrix(object):
 				ai_string = ai.to_string()
 				aj_string = aj.to_string()
 				if value == 'CASE_ID':
-					if 'case' not in transition_matrix[ai_string][aj_string]:
-						transition_matrix[ai_string][aj_string]['case'] = []
+					if 'case' not in transition_matrix[ai_string]['outgoings'][aj_string]:
+						transition_matrix[ai_string]['outgoings'][aj_string]['case'] = []
 
-					if caseid not in transition_matrix[ai_string][aj_string]['case']:
-						transition_matrix[ai_string][aj_string]['case'].append(caseid)
+					if caseid not in transition_matrix[ai_string]['outgoings'][aj_string]['case']:
+						transition_matrix[ai_string]['outgoings'][aj_string]['case'].append(caseid)
 		print("Finish")
 
 		x.append(transition_matrix)

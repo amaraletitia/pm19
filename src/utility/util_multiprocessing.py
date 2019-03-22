@@ -20,14 +20,21 @@ class Util_Multiprocessing(object):
 			else:
 				keys = result.keys()
 				for ai in matrix.keys():
+					# add new ai
 					if ai not in keys:
 						result[ai] = matrix[ai]
 					else:
-						inner_keys = result[ai].keys()
-						for aj in matrix[ai].keys():
-							if aj not in inner_keys:
-								result[ai][aj] = matrix[ai][aj]
+						for ai_val in matrix[ai].keys():
+							if ai_val != 'outgoings':
+								if ai_val not in result.keys():
+									result[ai][ai_val] = matrix[ai][ai_val]
+								else:
+									result[ai][ai_val] += matrix[ai][ai_val]
 							else:
-								for ak in matrix[ai][aj].keys():
-									result[ai][aj][ak] += matrix[ai][aj][ak]
+								for aj in matrix[ai]['outgoings'].keys():
+									if aj not in result[ai]['outgoings'].keys():
+										result[ai]['outgoings'][aj] = matrix[ai]['outgoings'][aj]
+									else:
+										for aj_val in matrix[ai]['outgoings'][aj].keys():
+											result[ai]['outgoings'][aj][aj_val] += matrix[ai]['outgoings'][aj][aj_val]
 		return result
