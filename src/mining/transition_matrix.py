@@ -87,9 +87,9 @@ class TransitionMatrix(object):
 		print("Finish")
 		x.append(transition_matrix)
 
-	def annotate_transition_matrix(self, eventlog, workers, transition_matrix, value = 'duration', source_time='default', final_time='default'):
+	def annotate_transition_matrix(self, eventlog, workers, transition_matrix, value = 'duration', start_time='default', complete_time='default'):
 
-		output = eventlog.parallelize(self._annotate_transition_matrix, workers, transition_matrix,value,source_time, final_time)
+		output = eventlog.parallelize(self._new_annotate_transition_matrix, workers, transition_matrix,value,start_time, complete_time)
 
 		transition_matrix = Util_Multiprocessing.join_dict(output)
 		#annotate 진행하게 되면 기존에 산출했던 count가 workers 수만큼 곱해지게 됨 따라서 이를 리셋할 필요가 있음
@@ -107,21 +107,23 @@ class TransitionMatrix(object):
 		return temp_tm
 
 	@timefn
-	def _annotate_transition_matrix(self, eventlog, x, transition_matrix, value='duration', source_time='default', final_time='default'):
+	def _new_annotate_transition_matrix(self, eventlog, x, transition_matrix, value='duration', start_time='default', complete_time='default'):
 		print("produce annotated transition matrix")
 
 		#start node
-		caseid = eventlog.get_first_caseid()
-		count = 0
-
-		for instance in eventlog.itertuples():
-			index = instance.Index
+		next_caseid = eventlog.get_first_caseid()
+		first = True
+		event_count = 0
+		skip_count = 0
+		for row in eventlog.itertuples():
+			index = row.Index
 			if index == eventlog.count_event() - 1:
 				continue
 
-			caseid = eventlog.get_caseid_by_index(index+1)
+			next_caseid = eventlog.get_caseid_by_index(index+1)
 
-			if count == 0:
+			#start와 현재 row 사이의 값을 annotation
+			if first == True:
 				if self.type == 'sequence':
 					ai = Sequence(self.horizon)
 				if self.type == 'set':
@@ -132,9 +134,59 @@ class TransitionMatrix(object):
 					aj.append(eventlog.get_activity_by_index(index))
 				elif self.target == 'RESOURCE':
 					aj.append(eventlog.get_resource_by_index(index))
-				count = 1
 
-			if instance.CASE_ID == caseid:
+				ai_string = ai.to_string()
+				aj_string = aj.to_string()
+
+				#skip annotating values if ai and aj not in the transition system
+				if ai_string not in transition_matrix or aj_string not in transition_matrix or aj_string not in transition_matrix[ai_string]['outgoings']:
+					skip_count+=1
+
+				else:
+					if value == 'CASE_ID':
+						pass
+					elif value == 'processing':
+						if 'processing' not in transition_matrix[aj_string]:
+							transition_matrix[aj_string]['processing'] = list()
+
+						if 'processing' not in transition_matrix[ai_string]['outgoings'][aj_string]:
+							transition_matrix[ai_string]['outgoings'][aj_string]['processing'] = list()
+
+						if start_time != 'default' and complete_time != 'default':
+							#현재 index 값을 추가
+							processing = eventlog.get_col_value_by_index(complete_time,index) - eventlog.get_col_value_by_index(start_time, index)
+						else:
+							raise("START & COMPLETE Column name should be provided to calculate processing time")
+						if processing < pd.Timedelta(0):
+							processing = pd.Timedelta(0)
+						transition_matrix[aj_string]['processing'].append(processing)
+						event_count += 1
+						transition_matrix[ai_string]['outgoings'][aj_string]['processing'].append(processing)
+
+					elif value == 'waiting':
+						pass
+
+					elif value == 'sojourn':
+						if start_time == 'default':
+							pass
+						#start와 현재 row 사이의 sojourn은 processing과 같음 (waiting=0), if there is start time
+						else:
+							if 'sojourn' not in transition_matrix[aj_string]:
+								transition_matrix[aj_string]['sojourn'] = list()
+
+							if 'sojourn' not in transition_matrix[ai_string]['outgoings'][aj_string]:
+								transition_matrix[ai_string]['outgoings'][aj_string]['sojourn'] = list()
+
+							sojourn = eventlog.get_col_value_by_index(complete_time,index) - eventlog.get_col_value_by_index(start_time, index)
+							if sojourn < pd.Timedelta(0):
+								sojourn = pd.Timedelta(0)
+							transition_matrix[aj_string]['sojourn'].append(sojourn)
+							event_count += 1
+							transition_matrix[ai_string]['outgoings'][aj_string]['sojourn'].append(sojourn)
+				first = False
+
+			#현재 row와 다음 row 사이의 값을 annotation, if next row has the same caseid
+			if row.CASE_ID == next_caseid:
 				if index == eventlog.count_event() - 2:
 					break
 				ai = deepcopy(aj)
@@ -146,55 +198,71 @@ class TransitionMatrix(object):
 				ai_string = ai.to_string()
 				aj_string = aj.to_string()
 
-				if value == 'CASE_ID':
-					if 'case' not in transition_matrix[ai_string]['outgoings'][aj_string]:
-						transition_matrix[ai_string]['outgoings'][aj_string]['case'] = []
+				#skip annotating values if ai and aj not in the transition system
+				if ai_string not in transition_matrix or aj_string not in transition_matrix or aj_string not in transition_matrix[ai_string]['outgoings']:
+					skip_count+=1
 
-					if caseid not in transition_matrix[ai_string]['outgoings'][aj_string]['case']:
-						transition_matrix[ai_string]['outgoings'][aj_string]['case'].append(caseid)
-				try:
-					if value == 'duration':
-						if 'duration' not in transition_matrix[ai_string]:
-							transition_matrix[aj_string]['duration'] = list()
-						if 'duration' not in transition_matrix[ai_string]['outgoings'][aj_string]:
-							transition_matrix[ai_string]['outgoings'][aj_string]['duration'] = list()
-						if source_time == 'default':
-							duration = eventlog.get_timestamp_by_index(index+1) - eventlog.get_timestamp_by_index(index)
+				else:
+					if value == 'CASE_ID':
+						if 'case' not in transition_matrix[ai_string]['outgoings'][aj_string]:
+							transition_matrix[ai_string]['outgoings'][aj_string]['case'] = []
+
+						if next_caseid not in transition_matrix[ai_string]['outgoings'][aj_string]['case']:
+							transition_matrix[ai_string]['outgoings'][aj_string]['case'].append(caseid)
+
+					elif value == 'processing':
+						if 'processing' not in transition_matrix[aj_string]:
+							transition_matrix[aj_string]['processing'] = list()
+						if 'processing' not in transition_matrix[ai_string]['outgoings'][aj_string]:
+							transition_matrix[ai_string]['outgoings'][aj_string]['processing'] = list()
+						if start_time != 'default' and complete_time != 'default':
+							processing = eventlog.get_col_value_by_index(complete_time,index+1) - eventlog.get_col_value_by_index(start_time, index+1)
 						else:
-							duration = eventlog.get_col_value_by_index(source_time,index+1) - eventlog.get_col_value_by_index(final_time, index+1)
-						duration = divmod(duration.days * 86400 + duration.seconds, 86400)
-						duration = 24*60*duration[0] + duration[1]/60
-						transition_matrix[aj_string]['duration'].append(duration)
-						transition_matrix[ai_string]['outgoings'][aj_string]['duration'].append(duration)
+							raise("START & COMPLETE Column name should be provided to calculate processing time")
+						if processing < pd.Timedelta(0):
+							processing = pd.Timedelta(0)
+						transition_matrix[aj_string]['processing'].append(processing)
+						event_count += 1
+						transition_matrix[ai_string]['outgoings'][aj_string]['processing'].append(processing)
+
+					elif value == 'waiting':
+						if 'waiting' not in transition_matrix[aj_string]:
+							transition_matrix[aj_string]['waiting'] = list()
+						if 'waiting' not in transition_matrix[ai_string]['outgoings'][aj_string]:
+							transition_matrix[ai_string]['outgoings'][aj_string]['waiting'] = list()
+						if start_time != 'default' and complete_time != 'default':
+							waiting = eventlog.get_col_value_by_index(start_time,index+1) - eventlog.get_col_value_by_index(complete_time, index)
+						else:
+							raise("START & COMPLETE Column name should be provided to calculate waiting time")
+						if waiting < pd.Timedelta(0):
+							waiting = pd.Timedelta(0)
+						transition_matrix[aj_string]['waiting'].append(waiting)
+						event_count += 1
+						transition_matrix[ai_string]['outgoings'][aj_string]['waiting'].append(waiting)
+
+					elif value == 'sojourn':
+						if 'sojourn' not in transition_matrix[aj_string]:
+							transition_matrix[aj_string]['sojourn'] = list()
+						if 'sojourn' not in transition_matrix[ai_string]['outgoings'][aj_string]:
+							transition_matrix[ai_string]['outgoings'][aj_string]['sojourn'] = list()
+						if complete_time != 'default':
+							sojourn = eventlog.get_timestamp_by_index(index+1) - eventlog.get_timestamp_by_index(index)
+						else:
+							raise("COMPLETE Column name should be provided to calculate waiting time")
+						if sojourn < pd.Timedelta(0):
+							sojourn = pd.Timedelta(0)
+						event_count += 1
+						transition_matrix[aj_string]['sojourn'].append(sojourn)
+						transition_matrix[ai_string]['outgoings'][aj_string]['sojourn'].append(sojourn)
+
 					elif value== 'Cluster':
 						if 'Cluster' not in transition_matrix[ai_string]['outgoings'][aj_string]:
 							transition_matrix[ai_string]['outgoings'][aj_string]['Cluster'] = list()
 						cluster = eventlog.get_col_value_by_index('Cluster',index+1)
 						transition_matrix[ai_string]['outgoings'][aj_string]['Cluster'].append(cluster)
-						"""
-						if cluster not in transition_matrix[ai_string]['outgoings'][aj_string]['Cluster']:
-							transition_matrix[ai_string]['outgoings'][aj_string]['Cluster'][cluster] = 1
-						else:
-							transition_matrix[ai_string]['outgoings'][aj_string]['Cluster'][cluster] += 1
-						"""
-					elif value == 'duration_list':
-						if 'duration_list' not in transition_matrix[aj_string]:
-							transition_matrix[aj_string]['duration_list'] = list()
-						if 'duration_list' not in transition_matrix[ai_string]['outgoings'][aj_string]:
-							transition_matrix[ai_string]['outgoings'][aj_string]['duration_list'] = list()
-						duration = eventlog.get_timestamp_by_index(index+1) - eventlog.get_timestamp_by_index(index)
-						if type(duration)==int:
-							print(duration)
-							continue
-						transition_matrix[aj_string]['duration_list'].append(duration)
-						transition_matrix[ai_string]['outgoings'][aj_string]['duration_list'].append(duration)
-				except KeyError:
-					print(ai_string, aj_string)
-					break
 
-
+			#case의 마지막 event와 END 사이의 값을 annotation
 			else:
-				count = 0
 				#add 'END'
 				ai = deepcopy(aj)
 				if self.type == 'sequence':
@@ -204,16 +272,23 @@ class TransitionMatrix(object):
 				aj.append('END')
 				ai_string = ai.to_string()
 				aj_string = aj.to_string()
-				if value == 'CASE_ID':
-					if 'case' not in transition_matrix[ai_string]['outgoings'][aj_string]:
-						transition_matrix[ai_string]['outgoings'][aj_string]['case'] = []
+				if ai_string not in transition_matrix and aj_string not in transition_matrix[ai_string]['outgoings']:
+					skip_count+=1
+				else:
+					if value == 'CASE_ID':
+						if 'case' not in transition_matrix[ai_string]['outgoings'][aj_string]:
+							transition_matrix[ai_string]['outgoings'][aj_string]['case'] = []
 
-					if caseid not in transition_matrix[ai_string]['outgoings'][aj_string]['case']:
-						transition_matrix[ai_string]['outgoings'][aj_string]['case'].append(caseid)
-		print("Finish")
+						if next_caseid not in transition_matrix[ai_string]['outgoings'][aj_string]['case']:
+							transition_matrix[ai_string]['outgoings'][aj_string]['case'].append(caseid)
+				first = True
+
+		print("Len of eventlog: {}".format(len(eventlog)))
+		print("Event count: {}".format(event_count))
+		print("Skip count: {}".format(skip_count))
 
 		x.append(transition_matrix)
-
+		return event_count
 
 
 
